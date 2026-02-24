@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/**
+ * ===== Enums =====
+ */
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum Role {
+  DEVELOPER
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+/**
+ * ===== auth Models =====
+ */
+
+model User {
+  id            String        @id @default(cuid())
+  name          String
+  email         String        @unique
+  username      String        @unique @db.VarChar(50)
+  image         String?
+  emailVerified DateTime?     @map("email_verified")
+  password      String
+  role          Role          @default(ADMIN)
+  status        AccountStatus @default(ACTIVE)
+  suspendedAt   DateTime?     @map("suspended_at")
+  baseCurrency  String        @default("BDT")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  userInfo          UserInfo?
+  loginHistory      LoginHistory[]
+  transactions      Transaction[]
+  financeCategories FinanceCategory[]
+  sharedPages       SharedPage[]
+  loans             Loan[]
+  savings           Savings[]
+  borrowed          Borrowed[]
+}
+
+model UserInfo {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dateOfBirth DateTime?
+  phone       String?
+  gender      String?
+  address     String?
+  profession  String?
+  hobbys      String?
+}
+
+model LoginHistory {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ipAddress String?
+  userAgent String?
+  location  String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+}
+
+model PasswordResetOtp {
+  id         String    @id @default(cuid())
+  email      String    @db.VarChar(255)
+  codeHash   String    @map("code_hash")
+  expiresAt  DateTime  @map("expires_at")
+  attempts   Int       @default(0)
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([email, createdAt])
+}
+
+/**
+ * ===== Finance Models =====
+ */
+model FinanceCategory {
+  id           String          @id @default(cuid())
+  name         String
+  type         TransactionType
+  icon         String?
+  color        String?
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  loans        Loan[]
+  savings      Savings[]
+  borrowed     Borrowed[]
+
+  @@unique([name, userId, type])
+  @@index([userId])
+  @@map("Category")
+}
+
+model Transaction {
+  id             String          @id @default(cuid())
+  type           TransactionType
+  title          String
+  description    String?
+  amount         Float
+  currency       String          @default("BDT")
+  date           DateTime        @default(now())
+  isRecurring    Boolean         @default(false)
+  frequency      Frequency?
+  nextOccurrence DateTime?
+  deletedAt      DateTime?
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId     String
+  category       FinanceCategory @relation(fields: [categoryId], references: [id])
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  @@index([userId, date, deletedAt])
+  @@index([categoryId])
+}
+
+model SharedPage {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([slug])
+}
+
+/**
+ * ===== Loan Models =====
+ */
+model Loan {
+  id          String           @id @default(cuid())
+  personName  String
+  amount      Float
+  currency    String           @default("BDT")
+  loanDate    DateTime         @default(now())
+  returnDate  DateTime?
+  description String?
+  status      String           @default("PENDING") // PENDING, RETURNED, OVERDUE
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@map("Loan")
+}
+
+/**
+ * ===== Borrowed Money Models =====
+ */
+model Borrowed {
+  id          String           @id @default(cuid())
+  lenderName  String
+  amount      Float
+  currency    String           @default("BDT")
+  borrowDate  DateTime         @default(now())
+  returnDate  DateTime?
+  actualReturnDate DateTime?
+  interest    Float            @default(0)
+  description String?
+  status      String           @default("PENDING") // PENDING, RETURNED, OVERDUE
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@map("Borrowed")
+}
+
+/**
+ * ===== Savings Models =====
+ */
+model Savings {
+  id          String           @id @default(cuid())
+  bankName    String
+  amount      Float
+  currency    String           @default("BDT")
+  description String?
+  savingsDate DateTime         @default(now())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("Savings")
+}
