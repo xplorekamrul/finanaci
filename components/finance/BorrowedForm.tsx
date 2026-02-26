@@ -1,11 +1,19 @@
 "use client";
 
 import { createBorrowed, updateBorrowed } from "@/actions/finance/borrowed";
+import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+} from "@/components/ui/select";
 import { borrowedSchema, BorrowedValues } from "@/lib/validations/borrowed";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Borrowed, FinanceCategory } from "@prisma/client";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { CategorySelector } from "./CategorySelector";
 
 interface BorrowedFormProps {
    borrowed?: Borrowed & { category: FinanceCategory | null };
@@ -14,13 +22,16 @@ interface BorrowedFormProps {
    onCancel: () => void;
 }
 
-export default function BorrowedForm({ borrowed, categories, onSuccess, onCancel }: BorrowedFormProps) {
+export default function BorrowedForm({ borrowed, categories: initialCategories, onSuccess, onCancel }: BorrowedFormProps) {
    const [loading, setLoading] = useState(false);
+   const [categories, setCategories] = useState(initialCategories);
 
    const {
       register,
       handleSubmit,
       formState: { errors },
+      watch,
+      setValue,
    } = useForm<any>({
       resolver: zodResolver(borrowedSchema),
       defaultValues: borrowed
@@ -170,30 +181,27 @@ export default function BorrowedForm({ borrowed, categories, onSuccess, onCancel
             {/* Status */}
             <div>
                <label className="block text-sm font-medium text-foreground mb-1">Status</label>
-               <select
-                  {...register("status")}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
-               >
-                  <option value="PENDING">Pending</option>
-                  <option value="RETURNED">Returned</option>
-                  <option value="OVERDUE">Overdue</option>
-               </select>
+               <Select value={watch("status") || ""} onValueChange={(value) => setValue("status", value)}>
+                  <SelectTrigger>
+                     <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     <SelectItem value="PENDING">Pending</SelectItem>
+                     <SelectItem value="RETURNED">Returned</SelectItem>
+                     <SelectItem value="OVERDUE">Overdue</SelectItem>
+                  </SelectContent>
+               </Select>
             </div>
 
             {/* Category */}
             <div className="md:col-span-2">
-               <label className="block text-sm font-medium text-foreground mb-1">Category</label>
-               <select
-                  {...register("categoryId")}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
-               >
-                  <option value="">Select a category (optional)</option>
-                  {categories.map((cat) => (
-                     <option key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                     </option>
-                  ))}
-               </select>
+               <CategorySelector
+                  categories={categories}
+                  value={watch("categoryId")}
+                  onValueChange={(value) => setValue("categoryId", value)}
+                  onCategoriesUpdate={setCategories}
+                  label="Category"
+               />
             </div>
 
             {/* Description */}

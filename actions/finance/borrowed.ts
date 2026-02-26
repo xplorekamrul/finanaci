@@ -1,19 +1,42 @@
 "use server";
 
+import { createPaginatedResponse, getPaginationParams } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { authActionClient } from "@/lib/safe-action/clients";
 import { borrowedSchema } from "@/lib/validations/borrowed";
-import { updateTag } from "next/cache";
+import { cacheLife, cacheTag, updateTag } from "next/cache";
 import * as z from "zod";
 
-export const getBorrowed = authActionClient.action(async ({ ctx }) => {
-   const borrowed = await prisma.borrowed.findMany({
-      where: { userId: ctx.userId },
-      include: { category: true },
-      orderBy: { borrowDate: "desc" },
+export const getBorrowed = authActionClient
+   .schema(
+      z.object({
+         page: z.coerce.number().int().positive().default(1),
+      })
+   )
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("finance-borrowed");
+
+      const { page, limit, skip } = getPaginationParams({
+         page: parsedInput.page,
+      });
+
+      const [borrowed, total] = await Promise.all([
+         prisma.borrowed.findMany({
+            where: { userId: ctx.userId },
+            include: { category: true },
+            orderBy: { borrowDate: "desc" },
+            skip,
+            take: limit,
+         }),
+         prisma.borrowed.count({
+            where: { userId: ctx.userId },
+         }),
+      ]);
+
+      return createPaginatedResponse(borrowed, total, page, limit);
    });
-   return borrowed;
-});
 
 export const createBorrowed = authActionClient
    .schema(borrowedSchema)
@@ -39,6 +62,7 @@ export const createBorrowed = authActionClient
       updateTag("finance-borrowed");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
+      updateTag("dashboard-loans-savings");
       return borrowed;
    });
 
@@ -78,6 +102,7 @@ export const updateBorrowed = authActionClient
       updateTag("finance-borrowed");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
+      updateTag("dashboard-loans-savings");
       return borrowed;
    });
 
@@ -99,5 +124,6 @@ export const deleteBorrowed = authActionClient
       updateTag("finance-borrowed");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
+      updateTag("dashboard-loans-savings");
       return { success: true };
    });

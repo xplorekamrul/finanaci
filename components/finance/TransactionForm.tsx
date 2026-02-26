@@ -1,11 +1,19 @@
 "use client";
 
 import { createTransaction, updateTransaction } from "@/actions/finance/transactions";
+import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+} from "@/components/ui/select";
 import { transactionSchema } from "@/lib/validations/finance";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FinanceCategory, Frequency, TransactionType } from "@prisma/client";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { CategorySelector } from "./CategorySelector";
 
 interface TransactionFormProps {
    categories: FinanceCategory[];
@@ -33,12 +41,13 @@ const getErrorMessage = (error: any): string => {
 };
 
 export default function TransactionForm({
-   categories,
+   categories: initialCategories,
    initialData,
    onClose,
    onSuccess,
 }: TransactionFormProps) {
    const [loading, setLoading] = useState(false);
+   const [categories, setCategories] = useState(initialCategories);
    const isEditMode = !!initialData?.id;
 
    const {
@@ -47,12 +56,14 @@ export default function TransactionForm({
       formState: { errors },
       reset,
       watch,
+      setValue,
    } = useForm<any>({
       resolver: zodResolver(transactionSchema),
       mode: "onBlur",
    });
 
    const isRecurring = watch("isRecurring");
+   const transactionType = watch("type");
 
    useEffect(() => {
       if (isEditMode && initialData) {
@@ -124,42 +135,30 @@ export default function TransactionForm({
          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Type Field */}
             <div className="space-y-2">
-               <label htmlFor="type" className="text-sm font-medium text-foreground">
+               <label className="text-sm font-medium text-foreground">
                   Type <span className="text-destructive">*</span>
                </label>
-               <select
-                  id="type"
-                  {...register("type")}
-                  className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.type ? "border-destructive" : "border-border"
-                     }`}
-               >
-                  <option value="">Select type</option>
-                  <option value={TransactionType.EXPENSE}>Expense</option>
-                  <option value={TransactionType.INCOME}>Income</option>
-               </select>
+               <Select value={transactionType || ""} onValueChange={(value) => setValue("type", value)}>
+                  <SelectTrigger>
+                     <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     <SelectItem value={TransactionType.EXPENSE}>Expense</SelectItem>
+                     <SelectItem value={TransactionType.INCOME}>Income</SelectItem>
+                  </SelectContent>
+               </Select>
                {errors.type && <p className="text-sm text-destructive">{getErrorMessage(errors.type)}</p>}
             </div>
 
-            {/* Category Field */}
-            <div className="space-y-2">
-               <label htmlFor="categoryId" className="text-sm font-medium text-foreground">
-                  Category <span className="text-destructive">*</span>
-               </label>
-               <select
-                  id="categoryId"
-                  {...register("categoryId")}
-                  className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.categoryId ? "border-destructive" : "border-border"
-                     }`}
-               >
-                  <option value="">Select a category</option>
-                  {categories.map((cat) => (
-                     <option key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                     </option>
-                  ))}
-               </select>
-               {errors.categoryId && <p className="text-sm text-destructive">{getErrorMessage(errors.categoryId)}</p>}
-            </div>
+            {/* Category Field with Custom Select */}
+            <CategorySelector
+               categories={categories}
+               value={watch("categoryId")}
+               onValueChange={(value) => setValue("categoryId", value)}
+               onCategoriesUpdate={setCategories}
+               error={errors.categoryId ? getErrorMessage(errors.categoryId) : undefined}
+               required
+            />
 
             {/* Title Field */}
             <div className="space-y-2">
@@ -256,21 +255,20 @@ export default function TransactionForm({
             {/* Frequency Field (conditional) */}
             {isRecurring && (
                <div className="space-y-2">
-                  <label htmlFor="frequency" className="text-sm font-medium text-foreground">
+                  <label className="text-sm font-medium text-foreground">
                      Frequency
                   </label>
-                  <select
-                     id="frequency"
-                     {...register("frequency")}
-                     className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.frequency ? "border-destructive" : "border-border"
-                        }`}
-                  >
-                     <option value="">Select frequency</option>
-                     <option value={Frequency.DAILY}>Daily</option>
-                     <option value={Frequency.WEEKLY}>Weekly</option>
-                     <option value={Frequency.MONTHLY}>Monthly</option>
-                     <option value={Frequency.YEARLY}>Yearly</option>
-                  </select>
+                  <Select value={watch("frequency") || ""} onValueChange={(value) => setValue("frequency", value)}>
+                     <SelectTrigger>
+                        <SelectValue placeholder="Select frequency" />
+                     </SelectTrigger>
+                     <SelectContent>
+                        <SelectItem value={Frequency.DAILY}>Daily</SelectItem>
+                        <SelectItem value={Frequency.WEEKLY}>Weekly</SelectItem>
+                        <SelectItem value={Frequency.MONTHLY}>Monthly</SelectItem>
+                        <SelectItem value={Frequency.YEARLY}>Yearly</SelectItem>
+                     </SelectContent>
+                  </Select>
                   {errors.frequency && <p className="text-sm text-destructive">{getErrorMessage(errors.frequency)}</p>}
                </div>
             )}

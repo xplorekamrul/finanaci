@@ -1,41 +1,48 @@
-import { getFinanceCategories } from "@/actions/finance/categories";
+import { getAllFinanceCategories } from "@/actions/finance/categories";
 import { getSavings } from "@/actions/finance/savings";
 import SavingsContent from "@/components/finance/SavingsContent";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-async function SavingsData() {
+async function SavingsData({ page }: { page: number }) {
    const session = await auth();
 
    if (!session?.user) {
       redirect("/login");
    }
 
-   const categoriesResult = await getFinanceCategories();
-   const savingsResult = await getSavings();
+   const categoriesResult = await getAllFinanceCategories();
+   const savingsResult = await getSavings({ page });
 
-   const categories = categoriesResult.data || [];
-   const savings = savingsResult.data || [];
+   const categories = (categoriesResult.data as any) || [];
+   const savings = (savingsResult.data as any)?.data || [];
+   const pagination = (savingsResult.data as any)?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false };
 
-   return <SavingsContent initialCategories={categories} initialSavings={savings} />;
+   return (
+      <SavingsContent
+         initialCategories={categories}
+         initialSavings={savings}
+         initialPagination={pagination}
+      />
+   );
 }
 
-export default function SavingsPage() {
+export default async function SavingsPage({
+   searchParams,
+}: {
+   searchParams: Promise<{ page?: string }>;
+}) {
+   const params = await searchParams;
+   const page = parseInt(params.page || "1");
+
    return (
       <main className="min-h-screen bg-background">
          <div className="max-w-7xl mx-auto p-6 space-y-8">
-            {/* Header - Server Side */}
-            <div className="space-y-2">
-               <h1 className="text-4xl font-bold text-foreground">Bank Savings</h1>
-               <p className="text-lg text-muted-foreground">
-                  Manage your bank savings and track your deposits
-               </p>
-            </div>
+          
 
-            {/* Client Component for Interactivity - Wrapped in Suspense */}
             <Suspense fallback={<SavingsPageSkeleton />}>
-               <SavingsData />
+               <SavingsData page={page} />
             </Suspense>
          </div>
       </main>

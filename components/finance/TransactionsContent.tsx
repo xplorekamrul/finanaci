@@ -1,6 +1,8 @@
 "use client";
 
 import { getTransactions } from "@/actions/finance/transactions";
+import { Pagination } from "@/components/shared/Pagination";
+import { PaginatedResponse } from "@/lib/pagination";
 import { FinanceCategory, Transaction } from "@prisma/client";
 import { Plus } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -11,24 +13,31 @@ import TransactionsTable from "./TransactionsTable";
 interface TransactionsContentProps {
    initialCategories: FinanceCategory[];
    initialTransactions: (Transaction & { category: FinanceCategory })[];
+   initialPagination: PaginatedResponse<any>["pagination"];
 }
 
 export default function TransactionsContent({
    initialCategories,
    initialTransactions,
+   initialPagination,
 }: TransactionsContentProps) {
    const [transactions, setTransactions] = useState<(Transaction & { category: FinanceCategory })[]>(
       initialTransactions
    );
+   const [pagination, setPagination] = useState(initialPagination);
    const [editingTransaction, setEditingTransaction] = useState<
       (Transaction & { category: FinanceCategory }) | null
    >(null);
    const [showModal, setShowModal] = useState(false);
 
-   const loadTransactions = useCallback(async () => {
+   const loadTransactions = useCallback(async (page: number = 1) => {
       try {
-         const result = await getTransactions();
-         if (result.data) setTransactions(result.data);
+         const result = await getTransactions({ page });
+         if (result.data) {
+            const paginatedData = result.data as any;
+            setTransactions(paginatedData.data || []);
+            setPagination(paginatedData.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
+         }
       } catch (error) {
          console.error("Failed to load transactions:", error);
       }
@@ -41,7 +50,7 @@ export default function TransactionsContent({
 
    const handleSuccess = () => {
       handleCloseModal();
-      loadTransactions();
+      loadTransactions(1);
    };
 
    return (
@@ -80,7 +89,15 @@ export default function TransactionsContent({
                setEditingTransaction(trans);
                setShowModal(true);
             }}
-            onRefresh={loadTransactions}
+            onRefresh={() => loadTransactions(pagination.page)}
+         />
+
+         {/* Pagination */}
+         <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            hasNextPage={pagination.hasNextPage}
+            hasPrevPage={pagination.hasPrevPage}
          />
 
          {/* Modal for Create/Edit */}

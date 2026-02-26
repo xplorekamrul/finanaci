@@ -1,11 +1,12 @@
 "use client";
 
+import { createSavings, updateSavings } from "@/actions/finance/savings";
+import { savingsSchema } from "@/lib/validations/savings";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { FinanceCategory, Savings } from "@prisma/client";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { savingsSchema } from "@/lib/validations/savings";
-import { createSavings, updateSavings } from "@/actions/finance/savings";
-import { FinanceCategory, Savings } from "@prisma/client";
+import { CategorySelector } from "./CategorySelector";
 
 interface SavingsFormProps {
   categories: FinanceCategory[];
@@ -22,12 +23,13 @@ const getErrorMessage = (error: any): string => {
 };
 
 export default function SavingsForm({
-  categories,
+  categories: initialCategories,
   initialData,
   onClose,
   onSuccess,
 }: SavingsFormProps) {
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState(initialCategories);
   const isEditMode = !!initialData?.id;
 
   const {
@@ -35,6 +37,8 @@ export default function SavingsForm({
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
+    setValue,
   } = useForm<any>({
     resolver: zodResolver(savingsSchema),
     mode: "onBlur",
@@ -109,9 +113,8 @@ export default function SavingsForm({
             type="text"
             placeholder="e.g., ABC Bank"
             {...register("bankName")}
-            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
-              errors.bankName ? "border-destructive" : "border-border"
-            }`}
+            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.bankName ? "border-destructive" : "border-border"
+              }`}
           />
           {errors.bankName && <p className="text-sm text-destructive">{getErrorMessage(errors.bankName)}</p>}
         </div>
@@ -127,9 +130,8 @@ export default function SavingsForm({
             step="0.01"
             placeholder="0.00"
             {...register("amount")}
-            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
-              errors.amount ? "border-destructive" : "border-border"
-            }`}
+            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.amount ? "border-destructive" : "border-border"
+              }`}
           />
           {errors.amount && <p className="text-sm text-destructive">{getErrorMessage(errors.amount)}</p>}
         </div>
@@ -144,34 +146,21 @@ export default function SavingsForm({
             type="text"
             placeholder="BDT"
             {...register("currency")}
-            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
-              errors.currency ? "border-destructive" : "border-border"
-            }`}
+            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.currency ? "border-destructive" : "border-border"
+              }`}
           />
           {errors.currency && <p className="text-sm text-destructive">{getErrorMessage(errors.currency)}</p>}
         </div>
 
         {/* Category */}
-        <div className="space-y-2">
-          <label htmlFor="categoryId" className="text-sm font-medium text-foreground">
-            Category <span className="text-destructive">*</span>
-          </label>
-          <select
-            id="categoryId"
-            {...register("categoryId")}
-            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
-              errors.categoryId ? "border-destructive" : "border-border"
-            }`}
-          >
-            <option value="">Select a category</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.icon} {cat.name}
-              </option>
-            ))}
-          </select>
-          {errors.categoryId && <p className="text-sm text-destructive">{getErrorMessage(errors.categoryId)}</p>}
-        </div>
+        <CategorySelector
+          categories={categories}
+          value={watch("categoryId")}
+          onValueChange={(value) => setValue("categoryId", value)}
+          onCategoriesUpdate={setCategories}
+          error={errors.categoryId ? getErrorMessage(errors.categoryId) : undefined}
+          label="Category"
+        />
 
         {/* Savings Date */}
         <div className="space-y-2">
@@ -182,9 +171,8 @@ export default function SavingsForm({
             id="savingsDate"
             type="date"
             {...register("savingsDate")}
-            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${
-              errors.savingsDate ? "border-destructive" : "border-border"
-            }`}
+            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.savingsDate ? "border-destructive" : "border-border"
+              }`}
           />
           {errors.savingsDate && <p className="text-sm text-destructive">{getErrorMessage(errors.savingsDate)}</p>}
         </div>
@@ -199,9 +187,8 @@ export default function SavingsForm({
             placeholder="Add notes about this savings..."
             {...register("description")}
             rows={3}
-            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none ${
-              errors.description ? "border-destructive" : "border-border"
-            }`}
+            className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none ${errors.description ? "border-destructive" : "border-border"
+              }`}
           />
           {errors.description && <p className="text-sm text-destructive">{getErrorMessage(errors.description)}</p>}
         </div>

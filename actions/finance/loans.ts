@@ -1,21 +1,44 @@
 "use server";
 
+import { createPaginatedResponse, getPaginationParams } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { authActionClient } from "@/lib/safe-action/clients";
 import { loanSchema } from "@/lib/validations/loans";
-import { updateTag } from "next/cache";
+import { cacheLife, cacheTag, updateTag } from "next/cache";
 import * as z from "zod";
 
-export const getLoans = authActionClient.action(async ({ ctx }) => {
-   const loans = await prisma.loan.findMany({
-      where: {
-         userId: ctx.userId,
-      },
-      include: { category: true },
-      orderBy: { loanDate: "desc" },
+export const getLoans = authActionClient
+   .schema(
+      z.object({
+         page: z.coerce.number().int().positive().default(1),
+      })
+   )
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("finance-loans");
+
+      const { page, limit, skip } = getPaginationParams({
+         page: parsedInput.page,
+      });
+
+      const [loans, total] = await Promise.all([
+         prisma.loan.findMany({
+            where: {
+               userId: ctx.userId,
+            },
+            include: { category: true },
+            orderBy: { loanDate: "desc" },
+            skip,
+            take: limit,
+         }),
+         prisma.loan.count({
+            where: { userId: ctx.userId },
+         }),
+      ]);
+
+      return createPaginatedResponse(loans, total, page, limit);
    });
-   return loans;
-});
 
 export const createLoan = authActionClient
    .schema(loanSchema)
@@ -39,6 +62,7 @@ export const createLoan = authActionClient
       updateTag("finance-loans");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
+      updateTag("dashboard-loans-savings");
       return loan;
    });
 
@@ -76,6 +100,7 @@ export const updateLoan = authActionClient
       updateTag("finance-loans");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
+      updateTag("dashboard-loans-savings");
       return updated;
    });
 
@@ -97,4 +122,5 @@ export const deleteLoan = authActionClient
       updateTag("finance-loans");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
+      updateTag("dashboard-loans-savings");
    });

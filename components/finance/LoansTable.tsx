@@ -4,6 +4,7 @@ import { deleteLoan } from "@/actions/finance/loans";
 import { FinanceCategory, Loan } from "@prisma/client";
 import { Edit2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import LoanCardMobile from "./LoanCardMobile";
 
 interface LoansTableProps {
@@ -14,17 +15,25 @@ interface LoansTableProps {
 
 export default function LoansTable({ loans, onEdit, onRefresh }: LoansTableProps) {
    const [deleting, setDeleting] = useState<string | null>(null);
+   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-   const handleDelete = async (id: string) => {
-      if (!confirm("Are you sure you want to delete this loan?")) return;
+   const handleDeleteClick = (id: string) => {
+      setDeleteId(id);
+      setDeleteDialogOpen(true);
+   };
 
-      setDeleting(id);
+   const handleConfirmDelete = async () => {
+      if (!deleteId) return;
+
+      setDeleting(deleteId);
       try {
-         await deleteLoan({ id });
+         await deleteLoan({ id: deleteId });
+         setDeleteDialogOpen(false);
+         setDeleteId(null);
          onRefresh();
       } catch (error) {
          console.error("Delete error:", error);
-         alert("Failed to delete loan");
       } finally {
          setDeleting(null);
       }
@@ -61,6 +70,17 @@ export default function LoansTable({ loans, onEdit, onRefresh }: LoansTableProps
 
    return (
       <>
+         <DeleteConfirmDialog
+            isOpen={deleteDialogOpen}
+            title="Delete Loan"
+            description="Are you sure you want to delete this loan? This action cannot be undone."
+            onConfirm={handleConfirmDelete}
+            onCancel={() => {
+               setDeleteDialogOpen(false);
+               setDeleteId(null);
+            }}
+            isLoading={deleting === deleteId}
+         />
          {/* Mobile Cards View */}
          <div className="md:hidden grid grid-cols-1 gap-4">
             {loans.map((loan) => (
@@ -112,8 +132,8 @@ export default function LoansTable({ loans, onEdit, onRefresh }: LoansTableProps
                            <td className="px-6 py-4 text-sm font-medium text-foreground">{loan.personName}</td>
                            <td className="px-6 py-4 text-sm text-foreground">
                               <div className="flex items-center gap-2">
-                                 {loan.category?.icon && <span>{loan.category.icon}</span>}
-                                 <span>{loan.category?.name || "-"}</span>
+                                 {/* {loan.category?.icon && <span>{loan.category.icon}</span>} */}
+                                 <span>{loan.category?.name || "N/P"}</span>
                               </div>
                            </td>
                            <td className="px-6 py-4 text-sm text-right font-semibold text-foreground">
@@ -144,7 +164,7 @@ export default function LoansTable({ loans, onEdit, onRefresh }: LoansTableProps
                                     <Edit2 className="h-4 w-4" />
                                  </button>
                                  <button
-                                    onClick={() => handleDelete(loan.id)}
+                                    onClick={() => handleDeleteClick(loan.id)}
                                     disabled={deleting === loan.id}
                                     className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive disabled:opacity-50"
                                     title="Delete"

@@ -5,6 +5,7 @@ import { FinanceCategory } from "@prisma/client";
 import { Edit2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import CategoryCard from "./CategoryCard";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 
 interface CategoriesTableProps {
    categories: FinanceCategory[];
@@ -14,17 +15,25 @@ interface CategoriesTableProps {
 
 export default function CategoriesTable({ categories, onEdit, onRefresh }: CategoriesTableProps) {
    const [deleting, setDeleting] = useState<string | null>(null);
+   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-   const handleDelete = async (id: string) => {
-      if (!confirm("Are you sure you want to delete this category?")) return;
+   const handleDeleteClick = (id: string) => {
+      setDeleteId(id);
+      setDeleteDialogOpen(true);
+   };
 
-      setDeleting(id);
+   const handleConfirmDelete = async () => {
+      if (!deleteId) return;
+
+      setDeleting(deleteId);
       try {
-         await deleteFinanceCategory({ id });
+         await deleteFinanceCategory({ id: deleteId });
+         setDeleteDialogOpen(false);
+         setDeleteId(null);
          onRefresh();
       } catch (error) {
          console.error("Delete error:", error);
-         alert("Failed to delete category");
       } finally {
          setDeleting(null);
       }
@@ -40,6 +49,17 @@ export default function CategoriesTable({ categories, onEdit, onRefresh }: Categ
 
    return (
       <>
+         <DeleteConfirmDialog
+            isOpen={deleteDialogOpen}
+            title="Delete Category"
+            description="Are you sure you want to delete this category? This action cannot be undone."
+            onConfirm={handleConfirmDelete}
+            onCancel={() => {
+               setDeleteDialogOpen(false);
+               setDeleteId(null);
+            }}
+            isLoading={deleting === deleteId}
+         />
          {/* Mobile Cards View */}
          <div className="md:hidden grid grid-cols-1 gap-4">
             {categories.map((category) => (
@@ -112,7 +132,7 @@ export default function CategoriesTable({ categories, onEdit, onRefresh }: Categ
                                     <Edit2 className="h-4 w-4" />
                                  </button>
                                  <button
-                                    onClick={() => handleDelete(category.id)}
+                                    onClick={() => handleDeleteClick(category.id)}
                                     disabled={deleting === category.id}
                                     className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive disabled:opacity-50"
                                     title="Delete"

@@ -7,7 +7,7 @@ import { TransactionType } from "@prisma/client";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
-interface CategoryFormProps {
+interface CategoryFormContentProps {
    initialData?: {
       id: string;
       name: string;
@@ -27,7 +27,7 @@ const getErrorMessage = (error: any): string => {
    return "";
 };
 
-export default function CategoryForm({ initialData, onClose, onSuccess, onCategoryCreated }: CategoryFormProps) {
+export default function CategoryFormContent({ initialData, onClose, onSuccess, onCategoryCreated }: CategoryFormContentProps) {
    const [loading, setLoading] = useState(false);
    const isEditMode = !!initialData?.id;
 
@@ -80,7 +80,7 @@ export default function CategoryForm({ initialData, onClose, onSuccess, onCatego
    };
 
    return (
-      <div className="space-y-6">
+      <>
          <div>
             <h2 className="text-2xl font-semibold text-foreground mb-6">
                {isEditMode ? "Update Category" : "Create Category"}
@@ -187,6 +187,6 @@ export default function CategoryForm({ initialData, onClose, onSuccess, onCatego
                </button>
             </div>
          </form>
-      </div>
+      </>
    );
 }

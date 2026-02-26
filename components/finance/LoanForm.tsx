@@ -1,11 +1,19 @@
 "use client";
 
 import { createLoan, updateLoan } from "@/actions/finance/loans";
+import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+} from "@/components/ui/select";
 import { loanSchema } from "@/lib/validations/loans";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FinanceCategory, Loan } from "@prisma/client";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { CategorySelector } from "./CategorySelector";
 
 interface LoanFormProps {
    categories: FinanceCategory[];
@@ -22,12 +30,13 @@ const getErrorMessage = (error: any): string => {
 };
 
 export default function LoanForm({
-   categories,
+   categories: initialCategories,
    initialData,
    onClose,
    onSuccess,
 }: LoanFormProps) {
    const [loading, setLoading] = useState(false);
+   const [categories, setCategories] = useState(initialCategories);
    const isEditMode = !!initialData?.id;
 
    const {
@@ -35,6 +44,8 @@ export default function LoanForm({
       handleSubmit,
       formState: { errors },
       reset,
+      watch,
+      setValue,
    } = useForm<any>({
       resolver: zodResolver(loanSchema),
       mode: "onBlur",
@@ -160,23 +171,14 @@ export default function LoanForm({
 
             {/* Category */}
             <div className="space-y-2">
-               <label htmlFor="categoryId" className="text-sm font-medium text-foreground">
-                  Category <span className="text-destructive">*</span>
-               </label>
-               <select
-                  id="categoryId"
-                  {...register("categoryId")}
-                  className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.categoryId ? "border-destructive" : "border-border"
-                     }`}
-               >
-                  <option value="">Select a category</option>
-                  {categories.map((cat) => (
-                     <option key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                     </option>
-                  ))}
-               </select>
-               {errors.categoryId && <p className="text-sm text-destructive">{getErrorMessage(errors.categoryId)}</p>}
+               <CategorySelector
+                  categories={categories}
+                  value={watch("categoryId")}
+                  onValueChange={(value) => setValue("categoryId", value)}
+                  onCategoriesUpdate={setCategories}
+                  error={errors.categoryId ? getErrorMessage(errors.categoryId) : undefined}
+                  label="Category"
+               />
             </div>
 
             {/* Loan Date */}
@@ -211,19 +213,19 @@ export default function LoanForm({
 
             {/* Status */}
             <div className="space-y-2">
-               <label htmlFor="status" className="text-sm font-medium text-foreground">
+               <label className="text-sm font-medium text-foreground">
                   Status
                </label>
-               <select
-                  id="status"
-                  {...register("status")}
-                  className={`w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all ${errors.status ? "border-destructive" : "border-border"
-                     }`}
-               >
-                  <option value="PENDING">Pending</option>
-                  <option value="RETURNED">Returned</option>
-                  <option value="OVERDUE">Overdue</option>
-               </select>
+               <Select value={watch("status") || ""} onValueChange={(value) => setValue("status", value)}>
+                  <SelectTrigger>
+                     <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     <SelectItem value="PENDING">Pending</SelectItem>
+                     <SelectItem value="RETURNED">Returned</SelectItem>
+                     <SelectItem value="OVERDUE">Overdue</SelectItem>
+                  </SelectContent>
+               </Select>
                {errors.status && <p className="text-sm text-destructive">{getErrorMessage(errors.status)}</p>}
             </div>
 

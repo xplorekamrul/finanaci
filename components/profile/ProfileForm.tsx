@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, User as UserIcon, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useAction } from "next-safe-action/hooks";
+import Image from "next/image";
 import { useState } from "react";
 
 type Props = {
@@ -43,11 +44,13 @@ export default function ProfileForm({ user }: Props) {
          <div className="flex flex-col items-center gap-4 mb-6">
             <div className="relative group">
                {form.image ? (
-                  <img
+                  <Image
                      src={form.image}
                      alt="Profile"
+                     width={96}
+                     height={96}
                      className="h-24 w-24 rounded-full object-cover border-2 border-border shadow-sm"
-                     onError={(e) => e.currentTarget.style.display = 'none'}
+                     priority={false}
                   />
                ) : (
                   <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center border-2 border-border shadow-sm">

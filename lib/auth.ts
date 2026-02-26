@@ -41,31 +41,28 @@ export const authOptions: NextAuthOptions = {
         const ok = await bcrypt.compare(password, user.password);
         if (!ok) return null;
 
-        // Log login history
-        try {
-          console.log("Attempting to record login history for userId:", user.id);
-          const headers = req?.headers as Record<string, string | string[]> | undefined;
+        // Log login history (fire and forget - don't await)
+        void (async () => {
+          try {
+            const headers = req?.headers as Record<string, string | string[]> | undefined;
 
-          let ip = (headers?.["x-forwarded-for"] as string) || (headers?.["x-real-ip"] as string) || "Unknown IP";
-          if (Array.isArray(ip)) ip = ip[0];
+            let ip = (headers?.["x-forwarded-for"] as string) || (headers?.["x-real-ip"] as string) || "Unknown IP";
+            if (Array.isArray(ip)) ip = ip[0];
 
-          let ua = (headers?.["user-agent"] as string) || "Unknown User Agent";
-          if (Array.isArray(ua)) ua = ua[0];
+            let ua = (headers?.["user-agent"] as string) || "Unknown User Agent";
+            if (Array.isArray(ua)) ua = ua[0];
 
-          console.log("Captured IP:", ip);
-          console.log("Captured UA:", ua);
-
-          await prisma.loginHistory.create({
-            data: {
-              userId: user.id,
-              ipAddress: ip,
-              userAgent: ua,
-            }
-          });
-          console.log("Login history saved successfully.");
-        } catch (error) {
-          console.error("CRITICAL: Failed to record login history.", error);
-        }
+            await prisma.loginHistory.create({
+              data: {
+                userId: user.id,
+                ipAddress: ip,
+                userAgent: ua,
+              }
+            });
+          } catch (error) {
+            console.error("Failed to record login history:", error);
+          }
+        })();
 
         const u: User = {
           id: user.id,

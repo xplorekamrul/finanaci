@@ -1,19 +1,42 @@
 "use server";
 
+import { createPaginatedResponse, getPaginationParams } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { authActionClient } from "@/lib/safe-action/clients";
 import { transactionSchema } from "@/lib/validations/finance";
-import { updateTag } from "next/cache";
+import { cacheLife, cacheTag, updateTag } from "next/cache";
 import * as z from "zod";
 
-export const getTransactions = authActionClient.action(async ({ ctx }) => {
-   const transactions = await prisma.transaction.findMany({
-      where: { userId: ctx.userId, deletedAt: null },
-      include: { category: true },
-      orderBy: { date: "desc" },
+export const getTransactions = authActionClient
+   .schema(
+      z.object({
+         page: z.coerce.number().int().positive().default(1),
+      })
+   )
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("finance-transactions");
+
+      const { page, limit, skip } = getPaginationParams({
+         page: parsedInput.page,
+      });
+
+      const [transactions, total] = await Promise.all([
+         prisma.transaction.findMany({
+            where: { userId: ctx.userId, deletedAt: null },
+            include: { category: true },
+            orderBy: { date: "desc" },
+            skip,
+            take: limit,
+         }),
+         prisma.transaction.count({
+            where: { userId: ctx.userId, deletedAt: null },
+         }),
+      ]);
+
+      return createPaginatedResponse(transactions, total, page, limit);
    });
-   return transactions;
-});
 
 export const createTransaction = authActionClient
    .schema(transactionSchema)
@@ -38,6 +61,8 @@ export const createTransaction = authActionClient
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
+      updateTag("dashboard-loans-savings");
+      updateTag("dashboard-borrowed");
       return transaction;
    });
 
@@ -76,6 +101,8 @@ export const updateTransaction = authActionClient
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
+      updateTag("dashboard-loans-savings");
+      updateTag("dashboard-borrowed");
       return updated;
    });
 
@@ -98,4 +125,6 @@ export const deleteTransaction = authActionClient
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
+      updateTag("dashboard-loans-savings");
+      updateTag("dashboard-borrowed");
    });

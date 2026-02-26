@@ -9,8 +9,8 @@ export default function AppProviders({ children }: { children: React.ReactNode }
     <SessionProvider>
       <ThemeProvider
         attribute="class"
-        defaultTheme="system"
-        enableSystem
+        defaultTheme="light"
+        enableSystem={false}
         disableTransitionOnChange
       >
         {children}

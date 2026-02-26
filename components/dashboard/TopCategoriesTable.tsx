@@ -43,7 +43,7 @@ export default function TopCategoriesTable({ categories }: TopCategoriesTablePro
                      >
                         <td className="px-6 py-4 text-sm">
                            <div className="flex items-center gap-3">
-                              {category.icon && <span className="text-lg">{category.icon}</span>}
+                              {/* {category.icon && <span className="text-lg">{category.icon}</span>} */}
                               <span className="font-medium text-foreground">{category.name}</span>
                            </div>
                         </td>

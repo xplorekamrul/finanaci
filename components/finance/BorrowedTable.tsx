@@ -4,6 +4,7 @@ import { deleteBorrowed } from "@/actions/finance/borrowed";
 import { Borrowed, FinanceCategory } from "@prisma/client";
 import { Edit2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 
 interface BorrowedTableProps {
    borrowed: (Borrowed & { category: FinanceCategory | null })[];
@@ -13,17 +14,25 @@ interface BorrowedTableProps {
 
 export default function BorrowedTable({ borrowed, onEdit, onRefresh }: BorrowedTableProps) {
    const [deleting, setDeleting] = useState<string | null>(null);
+   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-   const handleDelete = async (id: string) => {
-      if (!confirm("Are you sure you want to delete this borrowed record?")) return;
+   const handleDeleteClick = (id: string) => {
+      setDeleteId(id);
+      setDeleteDialogOpen(true);
+   };
 
-      setDeleting(id);
+   const handleConfirmDelete = async () => {
+      if (!deleteId) return;
+
+      setDeleting(deleteId);
       try {
-         await deleteBorrowed({ id });
+         await deleteBorrowed({ id: deleteId });
+         setDeleteDialogOpen(false);
+         setDeleteId(null);
          onRefresh();
       } catch (error) {
          console.error("Delete error:", error);
-         alert("Failed to delete borrowed record");
       } finally {
          setDeleting(null);
       }
@@ -60,6 +69,17 @@ export default function BorrowedTable({ borrowed, onEdit, onRefresh }: BorrowedT
 
    return (
       <>
+         <DeleteConfirmDialog
+            isOpen={deleteDialogOpen}
+            title="Delete Borrowed Record"
+            description="Are you sure you want to delete this borrowed record? This action cannot be undone."
+            onConfirm={handleConfirmDelete}
+            onCancel={() => {
+               setDeleteDialogOpen(false);
+               setDeleteId(null);
+            }}
+            isLoading={deleting === deleteId}
+         />
          {/* Mobile Cards View */}
          <div className="md:hidden grid grid-cols-1 gap-4">
             {borrowed.map((item) => (
@@ -79,7 +99,7 @@ export default function BorrowedTable({ borrowed, onEdit, onRefresh }: BorrowedT
                            <Edit2 className="h-4 w-4" />
                         </button>
                         <button
-                           onClick={() => handleDelete(item.id)}
+                           onClick={() => handleDeleteClick(item.id)}
                            disabled={deleting === item.id}
                            className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive disabled:opacity-50"
                            title="Delete"
@@ -138,7 +158,7 @@ export default function BorrowedTable({ borrowed, onEdit, onRefresh }: BorrowedT
                      <div className="pt-2 border-t border-border space-y-2">
                         {item.category && (
                            <div className="flex items-center gap-2">
-                              {item.category.icon && <span className="text-lg">{item.category.icon}</span>}
+                              {/* {item.category.icon && <span className="text-lg">{item.category.icon}</span>} */}
                               <span className="text-sm text-muted-foreground">{item.category.name}</span>
                            </div>
                         )}
@@ -196,8 +216,8 @@ export default function BorrowedTable({ borrowed, onEdit, onRefresh }: BorrowedT
                            <td className="px-6 py-4 text-sm font-medium text-foreground">{item.lenderName}</td>
                            <td className="px-6 py-4 text-sm text-foreground">
                               <div className="flex items-center gap-2">
-                                 {item.category?.icon && <span>{item.category.icon}</span>}
-                                 <span>{item.category?.name || "-"}</span>
+                                 {/* {item.category?.icon && <span>{item.category.icon}</span>} */}
+                                 <span>{item.category?.name || "N/P"}</span>
                               </div>
                            </td>
                            <td className="px-6 py-4 text-sm text-right font-semibold text-foreground">
@@ -231,7 +251,7 @@ export default function BorrowedTable({ borrowed, onEdit, onRefresh }: BorrowedT
                                     <Edit2 className="h-4 w-4" />
                                  </button>
                                  <button
-                                    onClick={() => handleDelete(item.id)}
+                                    onClick={() => handleDeleteClick(item.id)}
                                     disabled={deleting === item.id}
                                     className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive disabled:opacity-50"
                                     title="Delete"

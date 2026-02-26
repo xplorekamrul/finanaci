@@ -1,6 +1,8 @@
 "use client";
 
 import { getFinanceCategories } from "@/actions/finance/categories";
+import { Pagination } from "@/components/shared/Pagination";
+import { PaginatedResponse } from "@/lib/pagination";
 import { FinanceCategory } from "@prisma/client";
 import { Plus } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -10,17 +12,26 @@ import Modal from "./Modal";
 
 interface CategoriesContentProps {
    initialCategories: FinanceCategory[];
+   initialPagination: PaginatedResponse<any>["pagination"];
 }
 
-export default function CategoriesContent({ initialCategories }: CategoriesContentProps) {
+export default function CategoriesContent({
+   initialCategories,
+   initialPagination,
+}: CategoriesContentProps) {
    const [categories, setCategories] = useState<FinanceCategory[]>(initialCategories);
+   const [pagination, setPagination] = useState(initialPagination);
    const [editingCategory, setEditingCategory] = useState<FinanceCategory | null>(null);
    const [showModal, setShowModal] = useState(false);
 
-   const loadCategories = useCallback(async () => {
+   const loadCategories = useCallback(async (page: number = 1) => {
       try {
-         const result = await getFinanceCategories();
-         if (result.data) setCategories(result.data);
+         const result = await getFinanceCategories({ page });
+         if (result.data) {
+            const paginatedData = result.data as any;
+            setCategories(paginatedData.data || []);
+            setPagination(paginatedData.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
+         }
       } catch (error) {
          console.error("Failed to load categories:", error);
       }
@@ -33,7 +44,7 @@ export default function CategoriesContent({ initialCategories }: CategoriesConte
 
    const handleSuccess = () => {
       handleCloseModal();
-      loadCategories();
+      loadCategories(1);
    };
 
    return (
@@ -52,7 +63,6 @@ export default function CategoriesContent({ initialCategories }: CategoriesConte
                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
                <Plus className="h-4 w-4" />
-              
             </button>
          </div>
 
@@ -63,7 +73,15 @@ export default function CategoriesContent({ initialCategories }: CategoriesConte
                setEditingCategory(cat);
                setShowModal(true);
             }}
-            onRefresh={loadCategories}
+            onRefresh={() => loadCategories(pagination.page)}
+         />
+
+         {/* Pagination */}
+         <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            hasNextPage={pagination.hasNextPage}
+            hasPrevPage={pagination.hasPrevPage}
          />
 
          {/* Modal for Create/Edit */}

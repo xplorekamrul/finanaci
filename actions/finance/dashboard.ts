@@ -41,15 +41,43 @@ export const getDashboardStats = authActionClient.action(async ({ ctx }) => {
    const { startDate: monthStart } = getDateRange("month");
    const { startDate: yearStart } = getDateRange("year");
 
-   const allTransactions = await prisma.transaction.findMany({
-      where: {
-         userId: ctx.userId,
-         deletedAt: null,
-      },
-      include: { category: true },
-   });
+   // Fetch all transactions with date filtering at DB level
+   const [dayTransactions, weekTransactions, monthTransactions, yearTransactions] = await Promise.all([
+      prisma.transaction.findMany({
+         where: {
+            userId: ctx.userId,
+            deletedAt: null,
+            date: { gte: dayStart, lte: dayEnd },
+         },
+         select: { type: true, amount: true },
+      }),
+      prisma.transaction.findMany({
+         where: {
+            userId: ctx.userId,
+            deletedAt: null,
+            date: { gte: weekStart, lte: dayEnd },
+         },
+         select: { type: true, amount: true },
+      }),
+      prisma.transaction.findMany({
+         where: {
+            userId: ctx.userId,
+            deletedAt: null,
+            date: { gte: monthStart, lte: dayEnd },
+         },
+         select: { type: true, amount: true },
+      }),
+      prisma.transaction.findMany({
+         where: {
+            userId: ctx.userId,
+            deletedAt: null,
+            date: { gte: yearStart, lte: dayEnd },
+         },
+         select: { type: true, amount: true },
+      }),
+   ]);
 
-   const calculateStats = (transactions: typeof allTransactions) => {
+   const calculateStats = (transactions: typeof dayTransactions) => {
       const income = transactions
          .filter((t) => t.type === "INCOME")
          .reduce((sum, t) => sum + t.amount, 0);
@@ -60,11 +88,6 @@ export const getDashboardStats = authActionClient.action(async ({ ctx }) => {
 
       return { income, expense, balance: income - expense };
    };
-
-   const dayTransactions = allTransactions.filter((t) => t.date >= dayStart && t.date <= dayEnd);
-   const weekTransactions = allTransactions.filter((t) => t.date >= weekStart && t.date <= dayEnd);
-   const monthTransactions = allTransactions.filter((t) => t.date >= monthStart && t.date <= dayEnd);
-   const yearTransactions = allTransactions.filter((t) => t.date >= yearStart && t.date <= dayEnd);
 
    return {
       day: calculateStats(dayTransactions),
@@ -89,10 +112,22 @@ export const getDashboardChartData = authActionClient.action(async ({ ctx }) => 
             gte: monthStart,
          },
       },
-      include: { category: true },
+      select: {
+         date: true,
+         type: true,
+         amount: true,
+         categoryId: true,
+         category: {
+            select: { name: true, icon: true },
+         },
+      },
    });
 
    const dailyData: Record<string, { income: number; expense: number }> = {};
+   const categoryData: Record<
+      string,
+      { name: string; income: number; expense: number; icon: string | null }
+   > = {};
 
    transactions.forEach((t) => {
       const dateKey = t.date.toISOString().split("T")[0];
@@ -105,14 +140,7 @@ export const getDashboardChartData = authActionClient.action(async ({ ctx }) => 
       } else {
          dailyData[dateKey].expense += t.amount;
       }
-   });
 
-   const categoryData: Record<
-      string,
-      { name: string; income: number; expense: number; icon: string | null }
-   > = {};
-
-   transactions.forEach((t) => {
       const catKey = t.categoryId;
       if (!categoryData[catKey]) {
          categoryData[catKey] = {
@@ -148,6 +176,7 @@ export const getDashboardTopCategories = authActionClient.action(async ({ ctx })
 
    const { startDate: monthStart } = getDateRange("month");
 
+   // Get top categories with aggregated amounts
    const topCategories = await prisma.transaction.groupBy({
       by: ["categoryId"],
       where: {
@@ -169,20 +198,25 @@ export const getDashboardTopCategories = authActionClient.action(async ({ ctx })
       take: 5,
    });
 
-   const categoriesWithDetails = await Promise.all(
-      topCategories.map(async (item) => {
-         const category = await prisma.financeCategory.findUnique({
-            where: { id: item.categoryId },
-         });
-         return {
-            id: item.categoryId,
-            name: category?.name || "Unknown",
-            icon: category?.icon,
-            amount: item._sum.amount || 0,
-            count: item._count,
-         };
-      })
-   );
+   // Batch fetch all categories in one query instead of N+1
+   const categoryIds = topCategories.map((item) => item.categoryId);
+   const categories = await prisma.financeCategory.findMany({
+      where: { id: { in: categoryIds } },
+      select: { id: true, name: true, icon: true },
+   });
+
+   const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+   const categoriesWithDetails = topCategories.map((item) => {
+      const category = categoryMap.get(item.categoryId);
+      return {
+         id: item.categoryId,
+         name: category?.name || "Unknown",
+         icon: category?.icon,
+         amount: item._sum.amount || 0,
+         count: item._count,
+      };
+   });
 
    return categoriesWithDetails;
 });

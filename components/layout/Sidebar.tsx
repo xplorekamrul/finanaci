@@ -8,11 +8,11 @@ import {
   Banknote,
   ChevronLeft,
   Gauge,
+  Handshake,
   HelpCircle,
   Home,
   LogOut,
   Menu,
-  Settings,
   Share2,
   Tag,
   TrendingUp,
@@ -20,6 +20,7 @@ import {
   Wrench
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -42,20 +43,29 @@ const commonNav: Item[] = [{ label: "Home", href: "/", icon: Home }];
 
 const roleNav: Record<Role, Item[]> = {
   DEVELOPER: [{ label: "Dev Tools", href: "/dev/tools", icon: Wrench },
-    { label: "Transactions", href: "/transactions", icon: TrendingUp },
-    { label: "Categories", href: "/categories", icon: Tag },
-    { label: "Bank Savings", href: "/savings", icon: Banknote },
-    { label: "Borrowed Money", href: "/borrowed", icon: Share2 },
+  { label: "Transactions", href: "/transactions", icon: TrendingUp },
+  { label: "Categories", href: "/categories", icon: Tag },
+  { label: "Bank Savings", href: "/savings", icon: Banknote },
+  { label: "Borrowed Money", href: "/borrowed", icon: Share2 },
+  { label: "Lone Given", href: "/loans", icon: Handshake },
   ],
   SUPER_ADMIN: [
     { label: "Super Dashboard", href: "/super-admin/overview", icon: Gauge },
     { label: "Users", href: "/super-admin/users", icon: Users },
+    { label: "Transactions", href: "/transactions", icon: TrendingUp },
+    { label: "Categories", href: "/categories", icon: Tag },
+    { label: "Bank Savings", href: "/savings", icon: Banknote },
+    { label: "Borrowed Money", href: "/borrowed", icon: Share2 },
+    { label: "Lone Given", href: "/loans", icon: Handshake },
+
   ],
   ADMIN: [
     { label: "Transactions", href: "/transactions", icon: TrendingUp },
     { label: "Categories", href: "/categories", icon: Tag },
     { label: "Bank Savings", href: "/savings", icon: Banknote },
     { label: "Borrowed Money", href: "/borrowed", icon: Share2 },
+    { label: "Lone Given", href: "/loans", icon: Handshake },
+
   ],
 };
 
@@ -122,7 +132,7 @@ export default function Sidebar({
               collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
             )}
           >
-            <span className="ml-2 font-semibold truncate">RareviewIt.com</span>
+            <span className="ml-2 font-semibold truncate">Financi.com</span>
           </div>
 
           <div className="flex items-center gap-1">
@@ -152,7 +162,14 @@ export default function Sidebar({
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs text-primary font-bold uppercase overflow-hidden border border-white/20">
                   {user.image ? (
-                    <img src={user.image} alt={user.name || "User"} className="h-full w-full object-cover" />
+                    <Image
+                      src={user.image}
+                      alt={user.name || "User"}
+                      width={32}
+                      height={32}
+                      className="h-full w-full object-cover"
+                      priority={false}
+                    />
                   ) : (
                     initials(user.name, user.email)
                   )}

@@ -3,7 +3,7 @@ import AppProviders from "@/components/providers/AppProviders";
 import type { Metadata } from "next";
 import "./globals.css";
 
-export const metadata: Metadata = { title: "RareviewIt" };
+export const metadata: Metadata = { title: "Financi" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

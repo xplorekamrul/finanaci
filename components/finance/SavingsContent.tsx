@@ -1,6 +1,8 @@
 "use client";
 
 import { getSavings } from "@/actions/finance/savings";
+import { Pagination } from "@/components/shared/Pagination";
+import { PaginatedResponse } from "@/lib/pagination";
 import { FinanceCategory, Savings } from "@prisma/client";
 import { Plus } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -11,24 +13,31 @@ import SavingsTable from "./SavingsTable";
 interface SavingsContentProps {
    initialCategories: FinanceCategory[];
    initialSavings: (Savings & { category: FinanceCategory | null })[];
+   initialPagination: PaginatedResponse<any>["pagination"];
 }
 
 export default function SavingsContent({
    initialCategories,
    initialSavings,
+   initialPagination,
 }: SavingsContentProps) {
    const [savings, setSavings] = useState<(Savings & { category: FinanceCategory | null })[]>(
       initialSavings
    );
+   const [pagination, setPagination] = useState(initialPagination);
    const [editingSavings, setEditingSavings] = useState<
       (Savings & { category: FinanceCategory | null }) | null
    >(null);
    const [showModal, setShowModal] = useState(false);
 
-   const loadSavings = useCallback(async () => {
+   const loadSavings = useCallback(async (page: number = 1) => {
       try {
-         const result = await getSavings();
-         if (result.data) setSavings(result.data);
+         const result = await getSavings({ page });
+         if (result.data) {
+            const paginatedData = result.data as any;
+            setSavings(paginatedData.data || []);
+            setPagination(paginatedData.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
+         }
       } catch (error) {
          console.error("Failed to load savings:", error);
       }
@@ -41,7 +50,7 @@ export default function SavingsContent({
 
    const handleSuccess = () => {
       handleCloseModal();
-      loadSavings();
+      loadSavings(1);
    };
 
    return (
@@ -80,7 +89,15 @@ export default function SavingsContent({
                setEditingSavings(saving);
                setShowModal(true);
             }}
-            onRefresh={loadSavings}
+            onRefresh={() => loadSavings(pagination.page)}
+         />
+
+         {/* Pagination */}
+         <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            hasNextPage={pagination.hasNextPage}
+            hasPrevPage={pagination.hasPrevPage}
          />
 
          {/* Modal for Create/Edit */}

@@ -1,21 +1,44 @@
 "use server";
 
+import { createPaginatedResponse, getPaginationParams } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { authActionClient } from "@/lib/safe-action/clients";
 import { savingsSchema } from "@/lib/validations/savings";
-import { updateTag } from "next/cache";
+import { cacheLife, cacheTag, updateTag } from "next/cache";
 import * as z from "zod";
 
-export const getSavings = authActionClient.action(async ({ ctx }) => {
-   const savings = await prisma.savings.findMany({
-      where: {
-         userId: ctx.userId,
-      },
-      include: { category: true },
-      orderBy: { savingsDate: "desc" },
+export const getSavings = authActionClient
+   .schema(
+      z.object({
+         page: z.coerce.number().int().positive().default(1),
+      })
+   )
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("finance-savings");
+
+      const { page, limit, skip } = getPaginationParams({
+         page: parsedInput.page,
+      });
+
+      const [savings, total] = await Promise.all([
+         prisma.savings.findMany({
+            where: {
+               userId: ctx.userId,
+            },
+            include: { category: true },
+            orderBy: { savingsDate: "desc" },
+            skip,
+            take: limit,
+         }),
+         prisma.savings.count({
+            where: { userId: ctx.userId },
+         }),
+      ]);
+
+      return createPaginatedResponse(savings, total, page, limit);
    });
-   return savings;
-});
 
 export const createSavings = authActionClient
    .schema(savingsSchema)
@@ -39,6 +62,7 @@ export const createSavings = authActionClient
       updateTag("finance-savings");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
+      updateTag("dashboard-loans-savings");
       return savings;
    });
 
@@ -76,6 +100,7 @@ export const updateSavings = authActionClient
       updateTag("finance-savings");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
+      updateTag("dashboard-loans-savings");
       return updated;
    });
 
@@ -97,4 +122,5 @@ export const deleteSavings = authActionClient
       updateTag("finance-savings");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
+      updateTag("dashboard-loans-savings");
    });

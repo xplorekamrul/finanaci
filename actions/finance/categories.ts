@@ -1,18 +1,55 @@
 "use server";
 
+import { createPaginatedResponse, getPaginationParams } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { authActionClient } from "@/lib/safe-action/clients";
 import { financeCategorySchema } from "@/lib/validations/finance";
-import { updateTag } from "next/cache";
+import { cacheLife, cacheTag, updateTag } from "next/cache";
 import * as z from "zod";
 
-export const getFinanceCategories = authActionClient.action(async ({ ctx }) => {
-   const categories = await prisma.financeCategory.findMany({
-      where: { userId: ctx.userId },
-      orderBy: { createdAt: "desc" },
+export const getFinanceCategories = authActionClient
+   .schema(
+      z.object({
+         page: z.coerce.number().int().positive().default(1),
+      })
+   )
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("finance-categories");
+
+      const { page, limit, skip } = getPaginationParams({
+         page: parsedInput.page,
+      });
+
+      const [categories, total] = await Promise.all([
+         prisma.financeCategory.findMany({
+            where: { userId: ctx.userId },
+            orderBy: { createdAt: "desc" },
+            skip,
+            take: limit,
+         }),
+         prisma.financeCategory.count({
+            where: { userId: ctx.userId },
+         }),
+      ]);
+
+      return createPaginatedResponse(categories, total, page, limit);
    });
-   return categories;
-});
+
+export const getAllFinanceCategories = authActionClient
+   .action(async ({ ctx }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("finance-categories");
+
+      const categories = await prisma.financeCategory.findMany({
+         where: { userId: ctx.userId },
+         orderBy: { createdAt: "desc" },
+      });
+
+      return categories;
+   });
 
 export const createFinanceCategory = authActionClient
    .schema(financeCategorySchema)
@@ -40,6 +77,10 @@ export const createFinanceCategory = authActionClient
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
+      updateTag("finance-transactions");
+      updateTag("finance-borrowed");
+      updateTag("finance-loans");
+      updateTag("finance-savings");
       return category;
    });
 
@@ -82,6 +123,10 @@ export const updateFinanceCategory = authActionClient
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
+      updateTag("finance-transactions");
+      updateTag("finance-borrowed");
+      updateTag("finance-loans");
+      updateTag("finance-savings");
       return updated;
    });
 
@@ -104,4 +149,8 @@ export const deleteFinanceCategory = authActionClient
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
+      updateTag("finance-transactions");
+      updateTag("finance-borrowed");
+      updateTag("finance-loans");
+      updateTag("finance-savings");
    });

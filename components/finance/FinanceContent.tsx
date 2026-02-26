@@ -1,21 +1,21 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { FinanceCategory, Transaction, Loan, Savings } from "@prisma/client";
-import { Plus } from "lucide-react";
-import CategoryForm from "@/components/finance/CategoryForm";
-import CategoriesTable from "@/components/finance/CategoriesTable";
-import TransactionForm from "@/components/finance/TransactionForm";
-import TransactionsTable from "@/components/finance/TransactionsTable";
-import LoanForm from "@/components/finance/LoanForm";
-import LoansTable from "@/components/finance/LoansTable";
-import SavingsForm from "@/components/finance/SavingsForm";
-import SavingsTable from "@/components/finance/SavingsTable";
-import Modal from "@/components/finance/Modal";
 import { getFinanceCategories } from "@/actions/finance/categories";
-import { getTransactions } from "@/actions/finance/transactions";
 import { getLoans } from "@/actions/finance/loans";
 import { getSavings } from "@/actions/finance/savings";
+import { getTransactions } from "@/actions/finance/transactions";
+import CategoriesTable from "@/components/finance/CategoriesTable";
+import CategoryForm from "@/components/finance/CategoryForm";
+import LoanForm from "@/components/finance/LoanForm";
+import LoansTable from "@/components/finance/LoansTable";
+import Modal from "@/components/finance/Modal";
+import SavingsForm from "@/components/finance/SavingsForm";
+import SavingsTable from "@/components/finance/SavingsTable";
+import TransactionForm from "@/components/finance/TransactionForm";
+import TransactionsTable from "@/components/finance/TransactionsTable";
+import { FinanceCategory, Loan, Savings, Transaction } from "@prisma/client";
+import { Plus } from "lucide-react";
+import { useCallback, useState } from "react";
 
 type Tab = "categories" | "transactions" | "loans" | "savings";
 
@@ -55,8 +55,11 @@ export default function FinanceContent({
   // Refresh functions
   const loadCategories = useCallback(async () => {
     try {
-      const result = await getFinanceCategories();
-      if (result.data) setCategories(result.data);
+      const result = await getFinanceCategories({ page: 1 });
+      if (result.data) {
+        const paginatedData = result.data as any;
+        setCategories(paginatedData.data || []);
+      }
     } catch (error) {
       console.error("Failed to load categories:", error);
     }
@@ -64,8 +67,11 @@ export default function FinanceContent({
 
   const loadTransactions = useCallback(async () => {
     try {
-      const result = await getTransactions();
-      if (result.data) setTransactions(result.data);
+      const result = await getTransactions({ page: 1 });
+      if (result.data) {
+        const paginatedData = result.data as any;
+        setTransactions(paginatedData.data || []);
+      }
     } catch (error) {
       console.error("Failed to load transactions:", error);
     }
@@ -73,8 +79,11 @@ export default function FinanceContent({
 
   const loadLoans = useCallback(async () => {
     try {
-      const result = await getLoans();
-      if (result.data) setLoans(result.data);
+      const result = await getLoans({ page: 1 });
+      if (result.data) {
+        const paginatedData = result.data as any;
+        setLoans(paginatedData.data || []);
+      }
     } catch (error) {
       console.error("Failed to load loans:", error);
     }
@@ -82,8 +91,11 @@ export default function FinanceContent({
 
   const loadSavings = useCallback(async () => {
     try {
-      const result = await getSavings();
-      if (result.data) setSavings(result.data);
+      const result = await getSavings({ page: 1 });
+      if (result.data) {
+        const paginatedData = result.data as any;
+        setSavings(paginatedData.data || []);
+      }
     } catch (error) {
       console.error("Failed to load savings:", error);
     }
@@ -118,11 +130,10 @@ export default function FinanceContent({
           <button
             key={tabName}
             onClick={() => setTab(tabName)}
-            className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap capitalize ${
-              tab === tabName
+            className={`px-4 py-2 font-medium transition-colors border-b-2 whitespace-nowrap capitalize ${tab === tabName
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             {tabName}
           </button>

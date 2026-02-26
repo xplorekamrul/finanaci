@@ -1,11 +1,11 @@
 import { getAllFinanceCategories } from "@/actions/finance/categories";
-import { getTransactions } from "@/actions/finance/transactions";
-import TransactionsContent from "@/components/finance/TransactionsContent";
+import { getLoans } from "@/actions/finance/loans";
+import LoansContent from "@/components/finance/LoansContent";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-async function TransactionsData({ page }: { page: number }) {
+async function LoansData({ page }: { page: number }) {
    const session = await auth();
 
    if (!session?.user) {
@@ -13,22 +13,22 @@ async function TransactionsData({ page }: { page: number }) {
    }
 
    const categoriesResult = await getAllFinanceCategories();
-   const transactionsResult = await getTransactions({ page });
+   const loansResult = await getLoans({ page });
 
    const categories = (categoriesResult.data as any) || [];
-   const transactions = (transactionsResult.data as any)?.data || [];
-   const pagination = (transactionsResult.data as any)?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false };
+   const loans = (loansResult.data as any)?.data || [];
+   const pagination = (loansResult.data as any)?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false };
 
    return (
-      <TransactionsContent
+      <LoansContent
          initialCategories={categories}
-         initialTransactions={transactions}
+         initialLoans={loans}
          initialPagination={pagination}
       />
    );
 }
 
-export default async function TransactionsPage({
+export default async function LoansPage({
    searchParams,
 }: {
    searchParams: Promise<{ page?: string }>;
@@ -39,17 +39,16 @@ export default async function TransactionsPage({
    return (
       <main className="min-h-screen bg-background">
          <div className="max-w-7xl mx-auto p-6 space-y-8">
-            
 
-            <Suspense fallback={<TransactionsPageSkeleton />}>
-               <TransactionsData page={page} />
+            <Suspense fallback={<LoansPageSkeleton />}>
+               <LoansData page={page} />
             </Suspense>
          </div>
       </main>
    );
 }
 
-function TransactionsPageSkeleton() {
+function LoansPageSkeleton() {
    return (
       <div className="space-y-6">
          <div className="h-10 w-32 bg-muted rounded-lg animate-pulse" />

@@ -1,8 +1,11 @@
 "use client";
 
+import { getBorrowed } from "@/actions/finance/borrowed";
+import { Pagination } from "@/components/shared/Pagination";
+import { PaginatedResponse } from "@/lib/pagination";
 import { Borrowed, FinanceCategory } from "@prisma/client";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import BorrowedForm from "./BorrowedForm";
 import BorrowedTable from "./BorrowedTable";
 import Modal from "./Modal";
@@ -10,17 +13,35 @@ import Modal from "./Modal";
 interface BorrowedContentProps {
    initialBorrowed: (Borrowed & { category: FinanceCategory | null })[];
    categories: FinanceCategory[];
+   initialPagination: PaginatedResponse<any>["pagination"];
 }
 
-export default function BorrowedContent({ initialBorrowed, categories }: BorrowedContentProps) {
+export default function BorrowedContent({
+   initialBorrowed,
+   categories,
+   initialPagination,
+}: BorrowedContentProps) {
+   const [borrowed, setBorrowed] = useState<(Borrowed & { category: FinanceCategory | null })[]>(
+      initialBorrowed
+   );
+   const [pagination, setPagination] = useState(initialPagination);
    const [isModalOpen, setIsModalOpen] = useState(false);
    const [editingBorrowed, setEditingBorrowed] = useState<
       (Borrowed & { category: FinanceCategory | null }) | null
    >(null);
 
-   const handleRefresh = () => {
-      window.location.reload();
-   };
+   const loadBorrowed = useCallback(async (page: number = 1) => {
+      try {
+         const result = await getBorrowed({ page });
+         if (result.data) {
+            const paginatedData = result.data as any;
+            setBorrowed(paginatedData.data || []);
+            setPagination(paginatedData.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
+         }
+      } catch (error) {
+         console.error("Failed to load borrowed records:", error);
+      }
+   }, []);
 
    const handleEdit = (item: Borrowed & { category: FinanceCategory | null }) => {
       setEditingBorrowed(item);
@@ -34,7 +55,7 @@ export default function BorrowedContent({ initialBorrowed, categories }: Borrowe
 
    const handleSuccess = () => {
       handleCloseModal();
-      handleRefresh();
+      loadBorrowed(1);
    };
 
    return (
@@ -53,12 +74,23 @@ export default function BorrowedContent({ initialBorrowed, categories }: Borrowe
                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
                <Plus className="h-4 w-4" />
-              
             </button>
          </div>
 
          {/* Borrowed Table */}
-         <BorrowedTable borrowed={initialBorrowed} onEdit={handleEdit} onRefresh={handleRefresh} />
+         <BorrowedTable
+            borrowed={borrowed}
+            onEdit={handleEdit}
+            onRefresh={() => loadBorrowed(pagination.page)}
+         />
+
+         {/* Pagination */}
+         <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            hasNextPage={pagination.hasNextPage}
+            hasPrevPage={pagination.hasPrevPage}
+         />
 
          {/* Modal for Create/Edit */}
          <Modal

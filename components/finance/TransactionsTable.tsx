@@ -4,6 +4,7 @@ import { deleteTransaction } from "@/actions/finance/transactions";
 import { FinanceCategory, Transaction } from "@prisma/client";
 import { Edit2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import TransactionCard from "./TransactionCard";
 
 interface TransactionsTableProps {
@@ -18,17 +19,25 @@ export default function TransactionsTable({
    onRefresh,
 }: TransactionsTableProps) {
    const [deleting, setDeleting] = useState<string | null>(null);
+   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-   const handleDelete = async (id: string) => {
-      if (!confirm("Are you sure you want to delete this transaction?")) return;
+   const handleDeleteClick = (id: string) => {
+      setDeleteId(id);
+      setDeleteDialogOpen(true);
+   };
 
-      setDeleting(id);
+   const handleConfirmDelete = async () => {
+      if (!deleteId) return;
+
+      setDeleting(deleteId);
       try {
-         await deleteTransaction({ id });
+         await deleteTransaction({ id: deleteId });
+         setDeleteDialogOpen(false);
+         setDeleteId(null);
          onRefresh();
       } catch (error) {
          console.error("Delete error:", error);
-         alert("Failed to delete transaction");
       } finally {
          setDeleting(null);
       }
@@ -52,6 +61,17 @@ export default function TransactionsTable({
 
    return (
       <>
+         <DeleteConfirmDialog
+            isOpen={deleteDialogOpen}
+            title="Delete Transaction"
+            description="Are you sure you want to delete this transaction? This action cannot be undone."
+            onConfirm={handleConfirmDelete}
+            onCancel={() => {
+               setDeleteDialogOpen(false);
+               setDeleteId(null);
+            }}
+            isLoading={deleting === deleteId}
+         />
          {/* Mobile Cards View */}
          <div className="md:hidden grid grid-cols-1 gap-4">
             {transactions.map((transaction) => (
@@ -103,7 +123,7 @@ export default function TransactionsTable({
                            <td className="px-6 py-4 text-sm text-foreground font-medium">{transaction.title}</td>
                            <td className="px-6 py-4 text-sm text-foreground">
                               <div className="flex items-center gap-2">
-                                 {transaction.category.icon && <span>{transaction.category.icon}</span>}
+                                 {/* {transaction.category.icon && <span>{transaction.category.icon}</span>} */}
                                  <span>{transaction.category.name}</span>
                               </div>
                            </td>
@@ -151,7 +171,7 @@ export default function TransactionsTable({
                                     <Edit2 className="h-4 w-4" />
                                  </button>
                                  <button
-                                    onClick={() => handleDelete(transaction.id)}
+                                    onClick={() => handleDeleteClick(transaction.id)}
                                     disabled={deleting === transaction.id}
                                     className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive disabled:opacity-50"
                                     title="Delete"
