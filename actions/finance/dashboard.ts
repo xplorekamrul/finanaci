@@ -33,7 +33,7 @@ function getDateRange(range: DateRange) {
 
 export const getDashboardStats = authActionClient.action(async ({ ctx }) => {
    "use cache";
-   cacheLife("minutes");
+   cacheLife("hours");
    cacheTag("dashboard-stats");
 
    const { startDate: dayStart, endDate: dayEnd } = getDateRange("day");
@@ -99,7 +99,7 @@ export const getDashboardStats = authActionClient.action(async ({ ctx }) => {
 
 export const getDashboardChartData = authActionClient.action(async ({ ctx }) => {
    "use cache";
-   cacheLife("minutes");
+   cacheLife("hours");
    cacheTag("dashboard-chart");
 
    const { startDate: monthStart } = getDateRange("month");
@@ -171,7 +171,7 @@ export const getDashboardChartData = authActionClient.action(async ({ ctx }) => 
 
 export const getDashboardTopCategories = authActionClient.action(async ({ ctx }) => {
    "use cache";
-   cacheLife("minutes");
+   cacheLife("hours");
    cacheTag("dashboard-categories");
 
    const { startDate: monthStart } = getDateRange("month");
@@ -223,7 +223,7 @@ export const getDashboardTopCategories = authActionClient.action(async ({ ctx })
 
 export const getDashboardLoansAndSavings = authActionClient.action(async ({ ctx }) => {
    "use cache";
-   cacheLife("minutes");
+   cacheLife("hours");
    cacheTag("dashboard-loans-savings");
 
    const { startDate: monthStart } = getDateRange("month");
@@ -265,7 +265,7 @@ export const getDashboardLoansAndSavings = authActionClient.action(async ({ ctx 
 
 export const getDashboardBorrowed = authActionClient.action(async ({ ctx }) => {
    "use cache";
-   cacheLife("minutes");
+   cacheLife("hours");
    cacheTag("dashboard-borrowed");
 
    const { startDate: monthStart } = getDateRange("month");

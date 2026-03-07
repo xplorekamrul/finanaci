@@ -36,15 +36,21 @@ export function CategorySelector({
     setIsCreating(true);
     try {
       const result = await createFinanceCategory(categoryData);
-      if (result.data) {
+      if (result?.data) {
         const newCategories = [...categories, result.data];
         onCategoriesUpdate(newCategories);
         onValueChange(result.data.id);
         setShowModal(false);
+      } else if (result?.serverError) {
+        console.error("Server error:", result.serverError);
+        alert(`Failed to create category: ${result.serverError}`);
+      } else {
+        console.error("Unexpected response:", result);
+        alert("Failed to create category");
       }
     } catch (error) {
       console.error("Failed to create category:", error);
-      alert("Failed to create category");
+      alert(`Failed to create category: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsCreating(false);
     }

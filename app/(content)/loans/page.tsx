@@ -12,8 +12,10 @@ async function LoansData({ page }: { page: number }) {
       redirect("/login");
    }
 
-   const categoriesResult = await getAllFinanceCategories();
-   const loansResult = await getLoans({ page });
+   const [categoriesResult, loansResult] = await Promise.all([
+      getAllFinanceCategories(),
+      getLoans({ page }),
+   ]);
 
    const categories = (categoriesResult.data as any) || [];
    const loans = (loansResult.data as any)?.data || [];

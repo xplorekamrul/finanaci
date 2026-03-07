@@ -50,7 +50,7 @@ const roleNav: Record<Role, Item[]> = {
   { label: "Lone Given", href: "/loans", icon: Handshake },
   ],
   SUPER_ADMIN: [
-    { label: "Super Dashboard", href: "/super-admin/overview", icon: Gauge },
+    { label: "Super Dashboard", href: "/", icon: Gauge },
     { label: "Users", href: "/super-admin/users", icon: Users },
     { label: "Transactions", href: "/transactions", icon: TrendingUp },
     { label: "Categories", href: "/categories", icon: Tag },

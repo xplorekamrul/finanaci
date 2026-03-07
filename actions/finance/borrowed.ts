@@ -15,8 +15,9 @@ export const getBorrowed = authActionClient
    )
    .action(async ({ ctx, parsedInput }) => {
       "use cache";
-      cacheLife("minutes");
-      cacheTag("finance-borrowed");
+      cacheLife("hours");
+      cacheTag("finance-borrowed-all");
+      cacheTag(`finance-borrowed-page-${parsedInput.page}`);
 
       const { page, limit, skip } = getPaginationParams({
          page: parsedInput.page,
@@ -59,7 +60,7 @@ export const createBorrowed = authActionClient
          include: { category: true },
       });
 
-      updateTag("finance-borrowed");
+      updateTag("finance-borrowed-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-loans-savings");
@@ -99,7 +100,7 @@ export const updateBorrowed = authActionClient
          include: { category: true },
       });
 
-      updateTag("finance-borrowed");
+      updateTag("finance-borrowed-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-loans-savings");
@@ -121,7 +122,7 @@ export const deleteBorrowed = authActionClient
          where: { id: parsedInput.id },
       });
 
-      updateTag("finance-borrowed");
+      updateTag("finance-borrowed-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-loans-savings");

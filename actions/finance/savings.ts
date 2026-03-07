@@ -15,8 +15,9 @@ export const getSavings = authActionClient
    )
    .action(async ({ ctx, parsedInput }) => {
       "use cache";
-      cacheLife("minutes");
-      cacheTag("finance-savings");
+      cacheLife("hours");
+      cacheTag("finance-savings-all");
+      cacheTag(`finance-savings-page-${parsedInput.page}`);
 
       const { page, limit, skip } = getPaginationParams({
          page: parsedInput.page,
@@ -59,7 +60,7 @@ export const createSavings = authActionClient
          include: { category: true },
       });
 
-      updateTag("finance-savings");
+      updateTag("finance-savings-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-loans-savings");
@@ -97,7 +98,7 @@ export const updateSavings = authActionClient
          include: { category: true },
       });
 
-      updateTag("finance-savings");
+      updateTag("finance-savings-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-loans-savings");
@@ -119,7 +120,7 @@ export const deleteSavings = authActionClient
          where: { id: parsedInput.id },
       });
 
-      updateTag("finance-savings");
+      updateTag("finance-savings-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-loans-savings");

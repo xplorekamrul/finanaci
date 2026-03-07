@@ -15,8 +15,9 @@ export const getFinanceCategories = authActionClient
    )
    .action(async ({ ctx, parsedInput }) => {
       "use cache";
-      cacheLife("minutes");
-      cacheTag("finance-categories");
+      cacheLife("hours");
+      cacheTag("finance-categories-all");
+      cacheTag(`finance-categories-page-${parsedInput.page}`);
 
       const { page, limit, skip } = getPaginationParams({
          page: parsedInput.page,
@@ -40,7 +41,7 @@ export const getFinanceCategories = authActionClient
 export const getAllFinanceCategories = authActionClient
    .action(async ({ ctx }) => {
       "use cache";
-      cacheLife("minutes");
+      cacheLife("hours");
       cacheTag("finance-categories");
 
       const categories = await prisma.financeCategory.findMany({
@@ -73,14 +74,14 @@ export const createFinanceCategory = authActionClient
          },
       });
 
-      updateTag("finance-categories");
+      updateTag("finance-categories-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
-      updateTag("finance-transactions");
-      updateTag("finance-borrowed");
-      updateTag("finance-loans");
-      updateTag("finance-savings");
+      updateTag("finance-transactions-all");
+      updateTag("finance-borrowed-all");
+      updateTag("finance-loans-all");
+      updateTag("finance-savings-all");
       return category;
    });
 
@@ -119,14 +120,14 @@ export const updateFinanceCategory = authActionClient
          data,
       });
 
-      updateTag("finance-categories");
+      updateTag("finance-categories-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
-      updateTag("finance-transactions");
-      updateTag("finance-borrowed");
-      updateTag("finance-loans");
-      updateTag("finance-savings");
+      updateTag("finance-transactions-all");
+      updateTag("finance-borrowed-all");
+      updateTag("finance-loans-all");
+      updateTag("finance-savings-all");
       return updated;
    });
 
@@ -145,12 +146,12 @@ export const deleteFinanceCategory = authActionClient
          where: { id: parsedInput.id },
       });
 
-      updateTag("finance-categories");
+      updateTag("finance-categories-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
-      updateTag("finance-transactions");
-      updateTag("finance-borrowed");
-      updateTag("finance-loans");
-      updateTag("finance-savings");
+      updateTag("finance-transactions-all");
+      updateTag("finance-borrowed-all");
+      updateTag("finance-loans-all");
+      updateTag("finance-savings-all");
    });
