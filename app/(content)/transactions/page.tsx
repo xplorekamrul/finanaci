@@ -12,8 +12,10 @@ async function TransactionsData({ page }: { page: number }) {
       redirect("/login");
    }
 
-   const categoriesResult = await getAllFinanceCategories();
-   const transactionsResult = await getTransactions({ page });
+   const [categoriesResult, transactionsResult] = await Promise.all([
+      getAllFinanceCategories(),
+      getTransactions({ page }),
+   ]);
 
    const categories = (categoriesResult.data as any) || [];
    const transactions = (transactionsResult.data as any)?.data || [];
@@ -39,7 +41,7 @@ export default async function TransactionsPage({
    return (
       <main className="min-h-screen bg-background">
          <div className="max-w-7xl mx-auto p-6 space-y-8">
-            
+
 
             <Suspense fallback={<TransactionsPageSkeleton />}>
                <TransactionsData page={page} />

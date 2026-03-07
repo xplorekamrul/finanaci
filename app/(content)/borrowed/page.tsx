@@ -12,8 +12,10 @@ async function BorrowedData({ page }: { page: number }) {
       redirect("/login");
    }
 
-   const borrowedResult = await getBorrowed({ page });
-   const categoriesResult = await getAllFinanceCategories();
+   const [borrowedResult, categoriesResult] = await Promise.all([
+      getBorrowed({ page }),
+      getAllFinanceCategories(),
+   ]);
 
    const borrowed = (borrowedResult.data as any)?.data || [];
    const categories = (categoriesResult.data as any) || [];
@@ -39,7 +41,7 @@ export default async function BorrowedPage({
    return (
       <main className="min-h-screen bg-background">
          <div className="max-w-7xl mx-auto p-6 space-y-8">
-            
+
 
             <Suspense fallback={<BorrowedPageSkeleton />}>
                <BorrowedData page={page} />

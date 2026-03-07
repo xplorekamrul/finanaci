@@ -12,8 +12,10 @@ async function SavingsData({ page }: { page: number }) {
       redirect("/login");
    }
 
-   const categoriesResult = await getAllFinanceCategories();
-   const savingsResult = await getSavings({ page });
+   const [categoriesResult, savingsResult] = await Promise.all([
+      getAllFinanceCategories(),
+      getSavings({ page }),
+   ]);
 
    const categories = (categoriesResult.data as any) || [];
    const savings = (savingsResult.data as any)?.data || [];
@@ -39,7 +41,7 @@ export default async function SavingsPage({
    return (
       <main className="min-h-screen bg-background">
          <div className="max-w-7xl mx-auto p-6 space-y-8">
-          
+
 
             <Suspense fallback={<SavingsPageSkeleton />}>
                <SavingsData page={page} />

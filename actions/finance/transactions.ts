@@ -15,8 +15,9 @@ export const getTransactions = authActionClient
    )
    .action(async ({ ctx, parsedInput }) => {
       "use cache";
-      cacheLife("minutes");
-      cacheTag("finance-transactions");
+      cacheLife("hours");
+      cacheTag("finance-transactions-all");
+      cacheTag(`finance-transactions-page-${parsedInput.page}`);
 
       const { page, limit, skip } = getPaginationParams({
          page: parsedInput.page,
@@ -57,7 +58,7 @@ export const createTransaction = authActionClient
          include: { category: true },
       });
 
-      updateTag("finance-transactions");
+      updateTag("finance-transactions-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
@@ -97,7 +98,7 @@ export const updateTransaction = authActionClient
          include: { category: true },
       });
 
-      updateTag("finance-transactions");
+      updateTag("finance-transactions-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");
@@ -121,7 +122,7 @@ export const deleteTransaction = authActionClient
          where: { id: parsedInput.id },
       });
 
-      updateTag("finance-transactions");
+      updateTag("finance-transactions-all");
       updateTag("dashboard-stats");
       updateTag("dashboard-chart");
       updateTag("dashboard-categories");

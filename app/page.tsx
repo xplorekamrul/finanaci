@@ -5,11 +5,13 @@ import { auth } from "@/lib/auth";
 import { Suspense } from "react";
 
 async function DashboardData() {
-  const statsResult = await getDashboardStats();
-  const chartResult = await getDashboardChartData();
-  const categoriesResult = await getDashboardTopCategories();
-  const loansAndSavingsResult = await getDashboardLoansAndSavings();
-  const borrowedResult = await getDashboardBorrowed();
+  const [statsResult, chartResult, categoriesResult, loansAndSavingsResult, borrowedResult] = await Promise.all([
+    getDashboardStats(),
+    getDashboardChartData(),
+    getDashboardTopCategories(),
+    getDashboardLoansAndSavings(),
+    getDashboardBorrowed(),
+  ]);
 
   return (
     <DashboardContent
