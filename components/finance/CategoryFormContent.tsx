@@ -62,18 +62,29 @@ export default function CategoryFormContent({ initialData, onClose, onSuccess, o
    const onSubmit = async (data: FinanceCategoryValues) => {
       setLoading(true);
       try {
+         let result;
          if (isEditMode && initialData?.id) {
-            await updateFinanceCategory({ ...data, id: initialData.id });
+            result = await updateFinanceCategory({ ...data, id: initialData.id });
          } else {
-            const result = await createFinanceCategory(data);
-            if (result.data && onCategoryCreated) {
+            result = await createFinanceCategory(data);
+         }
+
+         if (result?.data) {
+            if (!isEditMode && onCategoryCreated) {
                onCategoryCreated(result.data);
             }
+            onSuccess();
+            reset();
+         } else if (result?.serverError) {
+            console.error("Server error:", result.serverError);
+            alert(`Failed to save category: ${result.serverError}`);
+         } else {
+            console.error("Unexpected response:", result);
+            alert("Failed to save category");
          }
-         onSuccess();
-         reset();
       } catch (error) {
          console.error("Form error:", error);
+         alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
          setLoading(false);
       }

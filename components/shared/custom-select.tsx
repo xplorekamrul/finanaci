@@ -350,7 +350,7 @@ function CustomSelectBase({
           }}
         >
           <div
-            className="max-h-[300px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-accent scrollbar-track-transparent hover:scrollbar-thumb-accent/80 space-y-0.5"
+            className="max-h-[200px] overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-accent scrollbar-track-transparent hover:scrollbar-thumb-accent/80 space-y-0.5"
             onScroll={(e) => {
               if (!onScrollEnd) return;
               const target = e.currentTarget;
