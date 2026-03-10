@@ -11,9 +11,9 @@ interface DateRange {
 interface DateRangePickerProps {
   onRangeChange?: (range: DateRange) => void;
   defaultRange?: DateRange;
-  presetsOnly?: boolean; // If true, only show custom range picker, hide presets
-  hidePresets?: string[]; // Array of preset keys to hide (e.g., ['thisYear', 'lastYear'])
-  maxDayRange?: number; // Maximum number of days allowed in range (e.g., 31)
+  presetsOnly?: boolean;
+  hidePresets?: string[];
+  maxDayRange?: number;
 }
 
 const DateRangePicker: React.FC<DateRangePickerProps> = ({
@@ -24,8 +24,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   maxDayRange = undefined
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Initialize with default range or null as default
   const getDefaultRange = (): DateRange => {
     if (defaultRange && defaultRange.startDate && defaultRange.endDate) {
       return defaultRange;
@@ -33,7 +33,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     if (defaultRange && defaultRange.startDate === null && defaultRange.endDate === null) {
       return defaultRange;
     }
-    // Default to "Today"
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return {
@@ -49,6 +48,33 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // Update selectedRange when defaultRange prop changes
+  React.useEffect(() => {
+    if (defaultRange && defaultRange.startDate && defaultRange.endDate) {
+      setSelectedRange(defaultRange);
+      // Try to match the preset
+      if (defaultRange.label === 'This Month') {
+        setActivePreset('thisMonth');
+      } else if (defaultRange.label === 'Today') {
+        setActivePreset('today');
+      } else if (defaultRange.label === 'Yesterday') {
+        setActivePreset('yesterday');
+      } else if (defaultRange.label === 'Last 7 Days') {
+        setActivePreset('last7days');
+      } else if (defaultRange.label === 'Last 30 Days') {
+        setActivePreset('last30days');
+      } else if (defaultRange.label === 'Last Month') {
+        setActivePreset('lastMonth');
+      } else if (defaultRange.label === 'This Year') {
+        setActivePreset('thisYear');
+      } else if (defaultRange.label === 'Last Year') {
+        setActivePreset('lastYear');
+      } else {
+        setActivePreset('custom');
+      }
+    }
+  }, [defaultRange]);
   const [dropdownPosition, setDropdownPosition] = useState<'left' | 'right'>('left');
   const [dateRangeError, setDateRangeError] = useState<string>('');
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
@@ -56,6 +82,16 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const yearDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -74,12 +110,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   }, [isOpen, isYearDropdownOpen]);
 
   useEffect(() => {
-    if (isOpen && buttonRef.current) {
+    if (isOpen && buttonRef.current && !isMobile) {
       const buttonRect = buttonRef.current.getBoundingClientRect();
-      const dropdownWidth = 750; // Approximate width of dropdown
+      const dropdownWidth = 750;
       const windowWidth = window.innerWidth;
 
-      // Check if there's enough space on the right
       const spaceOnRight = windowWidth - buttonRect.right;
       const spaceOnLeft = buttonRect.left;
 
@@ -89,7 +124,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         setDropdownPosition('left');
       }
     }
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   const presets = [
     { key: 'noFilter', label: 'No Date Filter' },
@@ -166,10 +201,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       setActivePreset('custom');
       setCustomStartDate(null);
       setCustomEndDate(null);
-      // If presetsOnly is true, open immediately without showing preset list
-      if (presetsOnly) {
-        // Already in custom mode, will show custom picker
-      }
       return;
     }
 
@@ -190,8 +221,6 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       setActivePreset(key);
       setCustomStartDate(null);
       setCustomEndDate(null);
-
-      // Auto apply for non-custom ranges
       setSelectedRange(range);
       setIsOpen(false);
       if (onRangeChange) {
@@ -247,12 +276,10 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(displayMonth);
     const days = [];
 
-    // Previous month's trailing days
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="h-8 w-8" />);
+      days.push(<div key={`empty-${i}`} className="h-8 w-8 sm:h-10 sm:w-10" />);
     }
 
-    // Current month's days
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
       const dateStr = date.toDateString();
@@ -260,14 +287,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       const isStartDate = customStartDate && dateStr === customStartDate.toDateString();
       const isEndDate = customEndDate && dateStr === customEndDate.toDateString();
       const isInSelectedRange = customStartDate && customEndDate && isDateInRange(date, customStartDate, customEndDate);
-
-      // For hover preview
       const isInHoverRange = customStartDate && !customEndDate && hoverDate &&
         date >= customStartDate && date <= hoverDate;
-
       const isToday = dateStr === new Date().toDateString();
 
-      let cellClasses = 'h-8 w-8 text-sm transition-colors relative ';
+      let cellClasses = 'h-8 w-8 sm:h-10 sm:w-10 text-xs sm:text-sm transition-colors relative ';
 
       if (isStartDate || isEndDate) {
         cellClasses += 'bg-green-600 text-white font-semibold rounded';
@@ -295,7 +319,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }
 
     return (
-      <div className="flex-1 min-w-[260px]">
+      <div className="flex-1 min-w-full sm:min-w-[260px]">
         <div className="flex items-center justify-between mb-3 px-2">
           {monthOffset === 0 && (
             <button
@@ -307,7 +331,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             </button>
           )}
           {monthOffset === 1 && <div className="w-6" />}
-          <div className="font-semibold text-sm">
+          <div className="font-semibold text-xs sm:text-sm">
             {displayMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </div>
           {monthOffset === 0 && <div className="w-6" />}
@@ -323,7 +347,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         </div>
         <div className="grid grid-cols-7 gap-1 mb-2">
           {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-            <div key={day} className="h-8 w-8 flex items-center justify-center text-xs font-medium text-gray-600">
+            <div key={day} className="h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center text-xs font-medium text-gray-600">
               {day}
             </div>
           ))}
@@ -341,9 +365,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       setCustomEndDate(null);
       setDateRangeError('');
     } else if (date >= customStartDate) {
-      // Check if range exceeds max days
       if (maxDayRange) {
-        // Calculate days difference correctly (inclusive of both start and end dates)
         const daysDiff = Math.floor((date.getTime() - customStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         if (daysDiff > maxDayRange) {
           setDateRangeError(`Date selection limit is ${maxDayRange} days only`);
@@ -353,9 +375,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       setCustomEndDate(date);
       setDateRangeError('');
     } else {
-      // Check if range exceeds max days
       if (maxDayRange) {
-        // Calculate days difference correctly (inclusive of both start and end dates)
         const daysDiff = Math.floor((customStartDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         if (daysDiff > maxDayRange) {
           setDateRangeError(`Date selection limit is ${maxDayRange} days only`);
@@ -410,11 +430,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   const years = Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 10 + i);
 
-  const positionClasses = dropdownPosition === 'right'
-    ? 'right-0'
-    : 'left-0';
+  const positionClasses = isMobile ? 'left-0 right-0' : (dropdownPosition === 'right' ? 'right-0' : 'left-0');
 
-  // If presetsOnly is true, always open in custom mode
   React.useEffect(() => {
     if (presetsOnly && isOpen && activePreset !== 'custom') {
       setActivePreset('custom');
@@ -433,7 +450,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             setIsOpen(!isOpen);
           }
         }}
-        className="w-full flex items-center gap-2 px-3 py-1 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors shadow-sm text-sm md:text-base cursor-pointer"
+        className="w-full flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors shadow-sm text-xs sm:text-sm md:text-base cursor-pointer"
       >
         <Calendar className="w-4 h-4 text-gray-600 flex-shrink-0" />
         <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis">
@@ -442,22 +459,22 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       </button>
 
       {isOpen && activePreset === 'custom' && (
-        <div className={`absolute top-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 ${positionClasses}`} onClick={(e) => e.stopPropagation()}>
-          <div className="p-4 min-w-[600px]">
-            {/* Year selector horizontally positioned between calendars */}
-            <div className="flex items-center justify-center gap-4 mb-4">
+        <div className={`absolute top-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 ${positionClasses} w-full sm:w-auto`} onClick={(e) => e.stopPropagation()}>
+          <div className="p-3 sm:p-4 w-full sm:min-w-[600px] max-w-full">
+            {/* Year selector */}
+            <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4">
               <div className="flex items-center gap-2 relative" ref={yearDropdownRef}>
-                <label className="text-xs font-medium text-gray-600">Year:</label>
+                <label className="text-xs font-medium text-gray-600 whitespace-nowrap">Year:</label>
                 <button
                   onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
-                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors cursor-pointer flex items-center gap-2 min-w-[80px]"
+                  className="px-2 sm:px-3 py-2 border border-gray-300 rounded-md bg-white text-xs sm:text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors cursor-pointer flex items-center gap-2 min-w-[70px] sm:min-w-[80px]"
                 >
                   {currentMonth.getFullYear()}
-                  <ChevronLeft className={`w-4 h-4 transition-transform ${isYearDropdownOpen ? 'rotate-90' : '-rotate-90'}`} />
+                  <ChevronLeft className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isYearDropdownOpen ? 'rotate-90' : '-rotate-90'}`} />
                 </button>
 
                 {isYearDropdownOpen && (
-                  <div className="absolute top-full mt-1 left-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-48 w-20 overflow-y-auto ">
+                  <div className="absolute top-full mt-1 left-0 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-48 w-20 overflow-y-auto">
                     {years.map(year => (
                       <button
                         key={year}
@@ -465,7 +482,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                           handleYearChange(year);
                           setIsYearDropdownOpen(false);
                         }}
-                        className={`w-full px-3 py-2 text-sm text-left transition-colors cursor-pointer ${currentMonth.getFullYear() === year
+                        className={`w-full px-3 py-2 text-xs sm:text-sm text-left transition-colors cursor-pointer ${currentMonth.getFullYear() === year
                           ? 'bg-green-50 text-green-700 font-semibold'
                           : 'hover:bg-gray-100 text-gray-700'
                           }`}
@@ -478,46 +495,53 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
               </div>
             </div>
 
-            {/* Calendars side by side horizontally */}
-            <div className="flex gap-6 mb-4">
+            {/* Calendars - Stack on mobile, side by side on desktop */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 mb-4">
               {renderCalendar(0)}
-              {renderCalendar(1)}
+              {!isMobile && renderCalendar(1)}
             </div>
 
-            {/* Date display at bottom */}
-            <div className="flex items-center justify-center gap-4 border-t border-gray-200 pt-4 mt-4">
+            {/* Show second calendar on mobile when needed */}
+            {isMobile && (
+              <div className="flex flex-col gap-3 mb-4">
+                {renderCalendar(1)}
+              </div>
+            )}
+
+            {/* Date display */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 border-t border-gray-200 pt-3 sm:pt-4 mt-3 sm:mt-4">
               <div className="text-center">
                 <div className="text-xs text-gray-500 mb-1">Start Date</div>
-                <div className="font-semibold text-sm">
+                <div className="font-semibold text-xs sm:text-sm">
                   {customStartDate ? formatDateDisplay(customStartDate) : '-'}
                 </div>
               </div>
-              <div className="text-gray-400">-</div>
+              <div className="text-gray-400 hidden sm:block">-</div>
               <div className="text-center">
                 <div className="text-xs text-gray-500 mb-1">End Date</div>
-                <div className="font-semibold text-sm">
+                <div className="font-semibold text-xs sm:text-sm">
                   {customEndDate ? formatDateDisplay(customEndDate) : '-'}
                 </div>
               </div>
             </div>
 
-            {/* Action buttons - Only show for custom range */}
-            <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-200">
+            {/* Action buttons */}
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
               {dateRangeError && (
-                <div className="text-red-600 text-sm font-medium mr-auto">
+                <div className="text-red-600 text-xs sm:text-sm font-medium mr-auto">
                   {dateRangeError}
                 </div>
               )}
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 rounded transition-colors cursor-pointer w-full sm:w-auto"
               >
                 Cancel
               </button>
               <button
                 onClick={handleApply}
                 disabled={!customStartDate || !customEndDate || !!dateRangeError}
-                className={`px-4 py-2 text-sm font-medium text-white rounded transition-colors cursor-pointer ${!customStartDate || !customEndDate || dateRangeError
+                className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white rounded transition-colors cursor-pointer w-full sm:w-auto ${!customStartDate || !customEndDate || dateRangeError
                   ? 'bg-gray-300 cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700'
                   }`}
@@ -530,10 +554,9 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
       )}
 
       {isOpen && activePreset !== 'custom' && !presetsOnly && (
-        <div className={`absolute top-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 ${positionClasses}`}>
-          <div className="w-44 p-2">
+        <div className={`absolute top-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 ${positionClasses} w-full sm:w-auto`}>
+          <div className="w-full sm:w-44 p-2">
             {presets.map(preset => {
-              // Hide presets based on hidePresets array
               if (hidePresets.includes(preset.key)) {
                 return null;
               }
@@ -541,7 +564,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 <button
                   key={preset.key}
                   onClick={() => handlePresetClick(preset.key)}
-                  className={`w-full text-left px-3 py-2 text-sm rounded transition-colors cursor-pointer ${activePreset === preset.key
+                  className={`w-full text-left px-3 py-2 text-xs sm:text-sm rounded transition-colors cursor-pointer ${activePreset === preset.key
                     ? 'bg-green-50 text-green-700 font-medium'
                     : 'hover:bg-gray-50 text-gray-700'
                     }`}

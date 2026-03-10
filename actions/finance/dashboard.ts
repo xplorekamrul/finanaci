@@ -291,3 +291,119 @@ export const getDashboardBorrowed = authActionClient.action(async ({ ctx }) => {
       totalInterest,
    };
 });
+
+// Custom date range actions
+import * as z from "zod";
+
+const dateRangeSchema = z.object({
+   startDate: z.date(),
+   endDate: z.date(),
+});
+
+export const getDashboardChartDataByDateRange = authActionClient
+   .schema(dateRangeSchema)
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("dashboard-chart-custom");
+
+      const { startDate, endDate } = parsedInput;
+
+      const transactions = await prisma.transaction.findMany({
+         where: {
+            userId: ctx.userId,
+            deletedAt: null,
+            date: {
+               gte: startDate,
+               lte: endDate,
+            },
+         },
+         select: {
+            date: true,
+            type: true,
+            amount: true,
+            categoryId: true,
+            category: {
+               select: { name: true, icon: true },
+            },
+         },
+      });
+
+      const dailyData: Record<string, { income: number; expense: number }> = {};
+      const categoryData: Record<
+         string,
+         { name: string; income: number; expense: number; icon: string | null }
+      > = {};
+
+      transactions.forEach((t) => {
+         const dateKey = t.date.toISOString().split("T")[0];
+         if (!dailyData[dateKey]) {
+            dailyData[dateKey] = { income: 0, expense: 0 };
+         }
+
+         if (t.type === "INCOME") {
+            dailyData[dateKey].income += t.amount;
+         } else {
+            dailyData[dateKey].expense += t.amount;
+         }
+
+         const catKey = t.categoryId;
+         if (!categoryData[catKey]) {
+            categoryData[catKey] = {
+               name: t.category.name,
+               income: 0,
+               expense: 0,
+               icon: t.category.icon,
+            };
+         }
+
+         if (t.type === "INCOME") {
+            categoryData[catKey].income += t.amount;
+         } else {
+            categoryData[catKey].expense += t.amount;
+         }
+      });
+
+      return {
+         daily: Object.entries(dailyData)
+            .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+            .map(([date, data]) => ({
+               date,
+               ...data,
+            })),
+         category: Object.values(categoryData),
+      };
+   });
+
+export const getDashboardStatsByDateRange = authActionClient
+   .schema(dateRangeSchema)
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("dashboard-stats-custom");
+
+      const { startDate, endDate } = parsedInput;
+
+      const transactions = await prisma.transaction.findMany({
+         where: {
+            userId: ctx.userId,
+            deletedAt: null,
+            date: { gte: startDate, lte: endDate },
+         },
+         select: { type: true, amount: true },
+      });
+
+      const income = transactions
+         .filter((t) => t.type === "INCOME")
+         .reduce((sum, t) => sum + t.amount, 0);
+
+      const expense = transactions
+         .filter((t) => t.type === "EXPENSE")
+         .reduce((sum, t) => sum + t.amount, 0);
+
+      return {
+         income,
+         expense,
+         balance: income - expense,
+      };
+   });
