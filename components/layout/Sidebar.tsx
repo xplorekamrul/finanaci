@@ -7,7 +7,6 @@ import clsx from "clsx";
 import {
   Banknote,
   ChevronLeft,
-  Gauge,
   Handshake,
   HelpCircle,
   Home,
@@ -16,8 +15,7 @@ import {
   Share2,
   Tag,
   TrendingUp,
-  Users,
-  Wrench
+  Users
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
@@ -42,30 +40,27 @@ function initials(name?: string | null, email?: string | null) {
 const commonNav: Item[] = [{ label: "Home", href: "/", icon: Home }];
 
 const roleNav: Record<Role, Item[]> = {
-  DEVELOPER: [{ label: "Dev Tools", href: "/dev/tools", icon: Wrench },
-  { label: "Transactions", href: "/transactions", icon: TrendingUp },
-  { label: "Categories", href: "/categories", icon: Tag },
-  { label: "Bank Savings", href: "/savings", icon: Banknote },
-  { label: "Borrowed Money", href: "/borrowed", icon: Share2 },
-  { label: "Lone Given", href: "/loans", icon: Handshake },
+  DEVELOPER: [
+    { label: "Transactions", href: "/transactions", icon: TrendingUp },
+    { label: "Categories", href: "/categories", icon: Tag },
+    { label: "Bank Savings", href: "/savings", icon: Banknote },
+    { label: "Borrowed Money", href: "/borrowed", icon: Share2 },
+    { label: "Loans Given", href: "/loans", icon: Handshake },
   ],
   SUPER_ADMIN: [
-    { label: "Super Dashboard", href: "/", icon: Gauge },
     { label: "Users", href: "/super-admin/users", icon: Users },
     { label: "Transactions", href: "/transactions", icon: TrendingUp },
     { label: "Categories", href: "/categories", icon: Tag },
     { label: "Bank Savings", href: "/savings", icon: Banknote },
     { label: "Borrowed Money", href: "/borrowed", icon: Share2 },
-    { label: "Lone Given", href: "/loans", icon: Handshake },
-
+    { label: "Loans Given", href: "/loans", icon: Handshake },
   ],
   ADMIN: [
     { label: "Transactions", href: "/transactions", icon: TrendingUp },
     { label: "Categories", href: "/categories", icon: Tag },
     { label: "Bank Savings", href: "/savings", icon: Banknote },
     { label: "Borrowed Money", href: "/borrowed", icon: Share2 },
-    { label: "Lone Given", href: "/loans", icon: Handshake },
-
+    { label: "Loans Given", href: "/loans", icon: Handshake },
   ],
 };
 
