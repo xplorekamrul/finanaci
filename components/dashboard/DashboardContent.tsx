@@ -230,9 +230,10 @@ export default function DashboardContent({
 
                {/* Charts - Both Old and New */}
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Old Area Chart */}
-                  <div className="lg:col-span-2">
-                     <IncomeExpenseChart data={currentChartData?.daily || []} />
+
+                  {/* New Bar Chart */}
+                  <div>
+                     <IncomeExpenseByDateChart data={currentChartData?.daily || []} />
                   </div>
 
                   {/* Category Distribution */}
@@ -241,14 +242,12 @@ export default function DashboardContent({
                   </div>
                </div>
 
-               {/* New Bar Chart */}
-               <div>
-                  <IncomeExpenseByDateChart data={currentChartData?.daily || []} />
+               {/* Old Area Chart */}
+               <div className="lg:col-span-2">
+                  <IncomeExpenseChart data={currentChartData?.daily || []} />
                </div>
 
-               {/* Top Categories */}
-               <TopCategoriesTable categories={topCategories || []} />
-
+               
                {/* Loans and Savings */}
                {loansAndSavings && (
                   <LoansAndSavingsCard
@@ -258,6 +257,10 @@ export default function DashboardContent({
                      totalSavings={loansAndSavings.totalSavings}
                   />
                )}
+               
+               {/* Top Categories */}
+               <TopCategoriesTable categories={topCategories || []} />
+
             </>
          )}
       </div>
