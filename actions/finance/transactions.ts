@@ -129,3 +129,57 @@ export const deleteTransaction = authActionClient
       updateTag("dashboard-loans-savings");
       updateTag("dashboard-borrowed");
    });
+
+// Filtered transactions action
+export const getFilteredTransactions = authActionClient
+   .schema(
+      z.object({
+         page: z.coerce.number().int().positive().default(1),
+         startDate: z.date().optional(),
+         endDate: z.date().optional(),
+         categoryId: z.string().optional(),
+         type: z.enum(["INCOME", "EXPENSE"]).optional(),
+      })
+   )
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("finance-transactions-filtered");
+
+      const { page, limit, skip } = getPaginationParams({
+         page: parsedInput.page,
+      });
+
+      const where: any = {
+         userId: ctx.userId,
+         deletedAt: null,
+      };
+
+      if (parsedInput.startDate && parsedInput.endDate) {
+         where.date = {
+            gte: parsedInput.startDate,
+            lte: parsedInput.endDate,
+         };
+      }
+
+      if (parsedInput.categoryId) {
+         where.categoryId = parsedInput.categoryId;
+      }
+
+      if (parsedInput.type) {
+         where.type = parsedInput.type;
+      }
+
+      const [transactions, total] = await Promise.all([
+         prisma.transaction.findMany({
+            where,
+            include: { category: true },
+            orderBy: { date: "desc" },
+            skip,
+            take: limit,
+         }),
+         prisma.transaction.count({ where }),
+      ]);
+
+      return createPaginatedResponse(transactions, total, page, limit);
+   });

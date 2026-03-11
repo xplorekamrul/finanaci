@@ -14,6 +14,7 @@ interface DateRangePickerProps {
   presetsOnly?: boolean;
   hidePresets?: string[];
   maxDayRange?: number;
+  className?: string;
 }
 
 const DateRangePicker: React.FC<DateRangePickerProps> = ({
@@ -21,7 +22,8 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   defaultRange,
   presetsOnly = false,
   hidePresets = [],
-  maxDayRange = undefined
+  maxDayRange = undefined,
+  className = ""
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -33,12 +35,15 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
     if (defaultRange && defaultRange.startDate === null && defaultRange.endDate === null) {
       return defaultRange;
     }
+    // Default to "This Month"
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    start.setHours(0, 0, 0, 0);
+    today.setHours(23, 59, 59, 999);
     return {
-      startDate: today,
+      startDate: start,
       endDate: today,
-      label: 'Today'
+      label: 'This Month'
     };
   };
 
@@ -439,7 +444,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   }, [presetsOnly, isOpen, activePreset]);
 
   return (
-    <div className="relative w-full" ref={dropdownRef}>
+    <div className={`relative w-full ${className}`} ref={dropdownRef}>
       <button
         ref={buttonRef}
         onClick={() => {
