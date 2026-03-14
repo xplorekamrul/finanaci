@@ -183,3 +183,61 @@ export const getFilteredTransactions = authActionClient
 
       return createPaginatedResponse(transactions, total, page, limit);
    });
+
+// Get transaction sums based on filters
+export const getTransactionSums = authActionClient
+   .schema(
+      z.object({
+         startDate: z.date().optional(),
+         endDate: z.date().optional(),
+         categoryId: z.string().optional(),
+         type: z.enum(["INCOME", "EXPENSE"]).optional(),
+      })
+   )
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("finance-transactions-sums");
+
+      const where: any = {
+         userId: ctx.userId,
+         deletedAt: null,
+      };
+
+      if (parsedInput.startDate && parsedInput.endDate) {
+         where.date = {
+            gte: parsedInput.startDate,
+            lte: parsedInput.endDate,
+         };
+      }
+
+      if (parsedInput.categoryId) {
+         where.categoryId = parsedInput.categoryId;
+      }
+
+      if (parsedInput.type) {
+         where.type = parsedInput.type;
+      }
+
+      const transactions = await prisma.transaction.findMany({
+         where,
+         select: {
+            amount: true,
+            type: true,
+         },
+      });
+
+      const income = transactions
+         .filter((t) => t.type === "INCOME")
+         .reduce((sum, t) => sum + t.amount, 0);
+
+      const expense = transactions
+         .filter((t) => t.type === "EXPENSE")
+         .reduce((sum, t) => sum + t.amount, 0);
+
+      return {
+         income,
+         expense,
+         total: income - expense,
+      };
+   });
