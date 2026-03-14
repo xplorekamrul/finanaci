@@ -215,25 +215,20 @@ export const getTransactionSums = authActionClient
          where.categoryId = parsedInput.categoryId;
       }
 
-      if (parsedInput.type) {
-         where.type = parsedInput.type;
-      }
+      // Use aggregation for better performance
+      const [incomeResult, expenseResult] = await Promise.all([
+         prisma.transaction.aggregate({
+            where: { ...where, type: "INCOME" },
+            _sum: { amount: true },
+         }),
+         prisma.transaction.aggregate({
+            where: { ...where, type: "EXPENSE" },
+            _sum: { amount: true },
+         }),
+      ]);
 
-      const transactions = await prisma.transaction.findMany({
-         where,
-         select: {
-            amount: true,
-            type: true,
-         },
-      });
-
-      const income = transactions
-         .filter((t) => t.type === "INCOME")
-         .reduce((sum, t) => sum + t.amount, 0);
-
-      const expense = transactions
-         .filter((t) => t.type === "EXPENSE")
-         .reduce((sum, t) => sum + t.amount, 0);
+      const income = incomeResult._sum.amount || 0;
+      const expense = expenseResult._sum.amount || 0;
 
       return {
          income,

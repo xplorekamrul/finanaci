@@ -36,53 +36,39 @@ export const getDashboardStats = authActionClient.action(async ({ ctx }) => {
    cacheLife("hours");
    cacheTag("dashboard-stats");
 
-   const { startDate: dayStart, endDate: dayEnd } = getDateRange("day");
-   const { startDate: weekStart } = getDateRange("week");
-   const { startDate: monthStart } = getDateRange("month");
-   const { startDate: yearStart } = getDateRange("year");
+   const now = new Date();
+   const dayStart = new Date(now);
+   dayStart.setHours(0, 0, 0, 0);
 
-   // Fetch all transactions with date filtering at DB level
-   const [dayTransactions, weekTransactions, monthTransactions, yearTransactions] = await Promise.all([
-      prisma.transaction.findMany({
-         where: {
-            userId: ctx.userId,
-            deletedAt: null,
-            date: { gte: dayStart, lte: dayEnd },
-         },
-         select: { type: true, amount: true },
-      }),
-      prisma.transaction.findMany({
-         where: {
-            userId: ctx.userId,
-            deletedAt: null,
-            date: { gte: weekStart, lte: dayEnd },
-         },
-         select: { type: true, amount: true },
-      }),
-      prisma.transaction.findMany({
-         where: {
-            userId: ctx.userId,
-            deletedAt: null,
-            date: { gte: monthStart, lte: dayEnd },
-         },
-         select: { type: true, amount: true },
-      }),
-      prisma.transaction.findMany({
-         where: {
-            userId: ctx.userId,
-            deletedAt: null,
-            date: { gte: yearStart, lte: dayEnd },
-         },
-         select: { type: true, amount: true },
-      }),
-   ]);
+   const weekStart = new Date(now);
+   weekStart.setDate(now.getDate() - now.getDay());
+   weekStart.setHours(0, 0, 0, 0);
 
-   const calculateStats = (transactions: typeof dayTransactions) => {
-      const income = transactions
+   const monthStart = new Date(now);
+   monthStart.setDate(1);
+   monthStart.setHours(0, 0, 0, 0);
+
+   const yearStart = new Date(now);
+   yearStart.setMonth(0, 1);
+   yearStart.setHours(0, 0, 0, 0);
+
+   // Fetch all transactions once, then filter in memory
+   const allTransactions = await prisma.transaction.findMany({
+      where: {
+         userId: ctx.userId,
+         deletedAt: null,
+         date: { gte: yearStart },
+      },
+      select: { type: true, amount: true, date: true },
+   });
+
+   const calculateStats = (transactions: typeof allTransactions, startDate: Date) => {
+      const filtered = transactions.filter(t => t.date >= startDate);
+      const income = filtered
          .filter((t) => t.type === "INCOME")
          .reduce((sum, t) => sum + t.amount, 0);
 
-      const expense = transactions
+      const expense = filtered
          .filter((t) => t.type === "EXPENSE")
          .reduce((sum, t) => sum + t.amount, 0);
 
@@ -90,10 +76,10 @@ export const getDashboardStats = authActionClient.action(async ({ ctx }) => {
    };
 
    return {
-      day: calculateStats(dayTransactions),
-      week: calculateStats(weekTransactions),
-      month: calculateStats(monthTransactions),
-      year: calculateStats(yearTransactions),
+      day: calculateStats(allTransactions, dayStart),
+      week: calculateStats(allTransactions, weekStart),
+      month: calculateStats(allTransactions, monthStart),
+      year: calculateStats(allTransactions, yearStart),
    };
 });
 

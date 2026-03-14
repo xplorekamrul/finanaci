@@ -184,12 +184,11 @@ export default function Sidebar({
         {/* Scrollable Nav Area */}
         <div className="flex-1 overflow-y-auto px-2 py-2">
           <nav className="flex flex-col gap-1">
-            {items.map((it) => {
+            {items.map((it, idx) => {
               const Icon = it.icon;
               const isActive = pathname === it.href;
               const link = (
                 <Link
-                  key={it.href}
                   href={it.href}
                   className={clsx(
                     "group inline-flex items-center gap-3 rounded-md px-2 py-2 text-sm w-full font-medium transition-colors ",
@@ -204,7 +203,7 @@ export default function Sidebar({
                 </Link>
               );
 
-              return <div key={it.href}>{maybeWrapWithTooltip(link, it.label)}</div>;
+              return <div key={`${it.href}-${idx}`}>{maybeWrapWithTooltip(link, it.label)}</div>;
             })}
           </nav>
         </div>

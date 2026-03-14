@@ -13,39 +13,50 @@ async function DashboardData() {
     getDashboardBorrowed(),
   ]);
 
+  // Provide fallback values if any action fails
+  const stats = statsResult.data || {
+    day: { income: 0, expense: 0, balance: 0 },
+    week: { income: 0, expense: 0, balance: 0 },
+    month: { income: 0, expense: 0, balance: 0 },
+    year: { income: 0, expense: 0, balance: 0 },
+  };
+
+  const chartData = chartResult.data || { daily: [], category: [] };
+
+  const topCategories = (categoriesResult.data || []).map((cat) => ({
+    ...cat,
+    icon: cat.icon || null,
+  }));
+
+  const loansAndSavings = loansAndSavingsResult.data ? {
+    loans: loansAndSavingsResult.data.loans as any,
+    savings: loansAndSavingsResult.data.savings as any,
+    totalLoans: loansAndSavingsResult.data.totalLoans,
+    totalSavings: loansAndSavingsResult.data.totalSavings,
+  } : {
+    loans: [],
+    savings: [],
+    totalLoans: 0,
+    totalSavings: 0,
+  };
+
+  const borrowed = borrowedResult.data ? {
+    borrowed: borrowedResult.data.borrowed as any,
+    totalBorrowed: borrowedResult.data.totalBorrowed,
+    totalInterest: borrowedResult.data.totalInterest,
+  } : {
+    borrowed: [],
+    totalBorrowed: 0,
+    totalInterest: 0,
+  };
+
   return (
     <DashboardContent
-      stats={statsResult.data || {
-        day: { income: 0, expense: 0, balance: 0 },
-        week: { income: 0, expense: 0, balance: 0 },
-        month: { income: 0, expense: 0, balance: 0 },
-        year: { income: 0, expense: 0, balance: 0 },
-      }}
-      chartData={chartResult.data || { daily: [], category: [] }}
-      topCategories={(categoriesResult.data || []).map((cat) => ({
-        ...cat,
-        icon: cat.icon || null,
-      }))}
-      loansAndSavings={loansAndSavingsResult.data ? {
-        loans: loansAndSavingsResult.data.loans as any,
-        savings: loansAndSavingsResult.data.savings as any,
-        totalLoans: loansAndSavingsResult.data.totalLoans,
-        totalSavings: loansAndSavingsResult.data.totalSavings,
-      } : {
-        loans: [],
-        savings: [],
-        totalLoans: 0,
-        totalSavings: 0,
-      }}
-      borrowed={borrowedResult.data ? {
-        borrowed: borrowedResult.data.borrowed as any,
-        totalBorrowed: borrowedResult.data.totalBorrowed,
-        totalInterest: borrowedResult.data.totalInterest,
-      } : {
-        borrowed: [],
-        totalBorrowed: 0,
-        totalInterest: 0,
-      }}
+      stats={stats}
+      chartData={chartData}
+      topCategories={topCategories}
+      loansAndSavings={loansAndSavings}
+      borrowed={borrowed}
     />
   );
 }

@@ -78,20 +78,6 @@ export default function DashboardContent({
       setCustomDateRange(defaultRange);
       // Automatically load data for this month
       handleDateRangeChange(defaultRange);
-   }, []);// Get default date range (current month)
-   useEffect(() => {
-      const today = new Date();
-      today.setHours(23, 59, 59, 999);
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      const defaultRange: DateRangeType = {
-         startDate: startOfMonth,
-         endDate: today,
-         label: "This Month",
-      };
-      setCustomDateRange(defaultRange);
-      // Automatically load data for this month
-      handleDateRangeChange(defaultRange);
    }, []);
 
    const handleDateRangeChange = async (range: DateRangeType) => {
@@ -247,7 +233,7 @@ export default function DashboardContent({
                   <IncomeExpenseChart data={currentChartData?.daily || []} />
                </div>
 
-               
+
                {/* Loans and Savings */}
                {loansAndSavings && (
                   <LoansAndSavingsCard
@@ -257,7 +243,7 @@ export default function DashboardContent({
                      totalSavings={loansAndSavings.totalSavings}
                   />
                )}
-               
+
                {/* Top Categories */}
                <TopCategoriesTable categories={topCategories || []} />
 

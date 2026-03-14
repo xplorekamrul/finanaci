@@ -12,6 +12,7 @@ interface SidebarFrameClientProps {
 
 export default function SidebarFrameClient({ children, isAuthenticated }: SidebarFrameClientProps) {
    const [collapsed, setCollapsed] = useState(false);
+   const [mounted, setMounted] = useState(false);
    const pathname = usePathname();
 
    // Hide sidebar and bottom nav on these routes or if not authenticated
@@ -19,6 +20,7 @@ export default function SidebarFrameClient({ children, isAuthenticated }: Sideba
    const shouldHideSidebar = !isAuthenticated || hideSidebarRoutes.some(route => pathname.startsWith(route));
 
    useEffect(() => {
+      setMounted(true);
       const saved = localStorage.getItem("_sidebar_collapsed");
       if (saved != null) setCollapsed(saved === "1");
    }, []);
@@ -28,6 +30,45 @@ export default function SidebarFrameClient({ children, isAuthenticated }: Sideba
    // If sidebar should be hidden, just render children without layout
    if (shouldHideSidebar) {
       return <>{children}</>;
+   }
+
+   // Prevent hydration mismatch by not rendering until mounted
+   if (!mounted) {
+      return (
+         <>
+            {/* Desktop Layout */}
+            <div
+               className="hidden md:grid gap-[5px] motion-safe:transition-[grid-template-columns] motion-safe:duration-300 motion-safe:ease-in-out"
+               style={
+                  {
+                     gridTemplateColumns: "auto 1fr",
+                     height: "100dvh",
+                  } as React.CSSProperties
+               }
+            >
+               <div
+                  className="motion-safe:transition-[width] motion-safe:duration-300 motion-safe:ease-in-out bg-muted"
+                  style={{ width: "15rem", willChange: "width" }}
+               />
+               <main
+                  className="min-w-0 overflow-auto"
+                  style={{ scrollbarGutter: "stable" } as React.CSSProperties}
+               >
+                  {children}
+               </main>
+            </div>
+
+            {/* Mobile Layout */}
+            <div className="md:hidden flex flex-col h-dvh">
+               <main
+                  className="min-w-0 overflow-auto flex-1 pb-16"
+                  style={{ scrollbarGutter: "stable" } as React.CSSProperties}
+               >
+                  {children}
+               </main>
+            </div>
+         </>
+      );
    }
 
    return (
