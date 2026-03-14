@@ -12,13 +12,21 @@ export const register = actionClient
   .action(async ({ parsedInput }) => {
     const { name, email, password, username } = parsedInput;
 
-    const emailExists = await prisma.user.findUnique({ where: { email } });
-    if (emailExists) {
-      return { ok: false as const, message: "Email already registered" };
-    }
+    // Combine email and username check into single query
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email },
+          { username }
+        ]
+      },
+      select: { email: true, username: true }
+    });
 
-    const usernameExists = await prisma.user.findUnique({ where: { username } });
-    if (usernameExists) {
+    if (existingUser) {
+      if (existingUser.email === email) {
+        return { ok: false as const, message: "Email already registered" };
+      }
       return { ok: false as const, message: "Username already taken" };
     }
 
