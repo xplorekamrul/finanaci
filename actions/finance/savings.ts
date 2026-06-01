@@ -125,3 +125,92 @@ export const deleteSavings = authActionClient
       updateTag("dashboard-chart");
       updateTag("dashboard-loans-savings");
    });
+
+// Filtered savings action
+export const getFilteredSavings = authActionClient
+   .schema(
+      z.object({
+         page: z.coerce.number().int().positive().default(1),
+         startDate: z.date().optional(),
+         endDate: z.date().optional(),
+         categoryId: z.string().optional(),
+      })
+   )
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("finance-savings-filtered");
+
+      const { page, limit, skip } = getPaginationParams({
+         page: parsedInput.page,
+      });
+
+      const where: any = {
+         userId: ctx.userId,
+      };
+
+      if (parsedInput.startDate && parsedInput.endDate) {
+         where.savingsDate = {
+            gte: parsedInput.startDate,
+            lte: parsedInput.endDate,
+         };
+      }
+
+      if (parsedInput.categoryId) {
+         where.categoryId = parsedInput.categoryId;
+      }
+
+      const [savings, total] = await Promise.all([
+         prisma.savings.findMany({
+            where,
+            include: { category: true },
+            orderBy: { savingsDate: "desc" },
+            skip,
+            take: limit,
+         }),
+         prisma.savings.count({ where }),
+      ]);
+
+      return createPaginatedResponse(savings, total, page, limit);
+   });
+
+// Get savings total based on filters
+export const getSavingsSums = authActionClient
+   .schema(
+      z.object({
+         startDate: z.date().optional(),
+         endDate: z.date().optional(),
+         categoryId: z.string().optional(),
+      })
+   )
+   .action(async ({ ctx, parsedInput }) => {
+      "use cache";
+      cacheLife("minutes");
+      cacheTag("finance-savings-sums");
+
+      const where: any = {
+         userId: ctx.userId,
+      };
+
+      if (parsedInput.startDate && parsedInput.endDate) {
+         where.savingsDate = {
+            gte: parsedInput.startDate,
+            lte: parsedInput.endDate,
+         };
+      }
+
+      if (parsedInput.categoryId) {
+         where.categoryId = parsedInput.categoryId;
+      }
+
+      const result = await prisma.savings.aggregate({
+         where,
+         _sum: { amount: true },
+      });
+
+      const totalAmount = result._sum.amount || 0;
+
+      return {
+         total: totalAmount,
+      };
+   });

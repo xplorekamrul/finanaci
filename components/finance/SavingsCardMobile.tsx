@@ -2,7 +2,7 @@
 
 import { deleteSavings } from "@/actions/finance/savings";
 import { FinanceCategory, Savings } from "@prisma/client";
-import { Edit2, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 
@@ -15,6 +15,7 @@ interface SavingsCardProps {
 export default function SavingsCardMobile({ saving, onEdit, onRefresh }: SavingsCardProps) {
    const [deleting, setDeleting] = useState(false);
    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+   const [descExpanded, setDescExpanded] = useState(false);
 
    const handleDeleteClick = () => {
       setDeleteDialogOpen(true);
@@ -56,7 +57,17 @@ export default function SavingsCardMobile({ saving, onEdit, onRefresh }: Savings
             <div className="flex items-start justify-between gap-2">
                <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground truncate">{saving.bankName}</h3>
-                  <p className="text-sm text-muted-foreground">{formatDate(saving.savingsDate)}</p>
+                  <div className="flex items-start  gap-x-2">
+
+                     <p className="text-sm text-muted-foreground">{formatDate(saving.savingsDate)}</p>
+                     {/* Category */}
+                     {saving.category && (
+                        <div className="flex items-center gap-2">
+                           {/* {saving.category.icon && <span className="text-lg">{saving.category.icon}</span>} */}
+                           <span className="text-sm text-muted-foreground px-1.5 py-0.5 rounded-md bg-green-100">{saving.category.name}</span>
+                        </div>
+                     )}
+                  </div>
                </div>
                <div className="flex gap-2 shrink-0">
                   <button
@@ -84,17 +95,11 @@ export default function SavingsCardMobile({ saving, onEdit, onRefresh }: Savings
                </div>
             </div>
 
-            {/* Category */}
-            {saving.category && (
-               <div className="flex items-center gap-2">
-                  {/* {saving.category.icon && <span className="text-lg">{saving.category.icon}</span>} */}
-                  <span className="text-sm text-muted-foreground">{saving.category.name}</span>
-               </div>
-            )}
+
 
             {/* Amount */}
             <div className="pt-2 border-t border-border">
-               <p className="text-xs text-muted-foreground mb-1">Amount</p>
+               {/* <p className="text-xs text-muted-foreground mb-1">Amount</p> */}
                <p className="text-2xl font-bold text-foreground">
                   {saving.amount.toLocaleString("en-US", {
                      minimumFractionDigits: 2,
@@ -107,8 +112,28 @@ export default function SavingsCardMobile({ saving, onEdit, onRefresh }: Savings
             {/* Description */}
             {saving.description && (
                <div className="pt-2 border-t border-border">
-                  <p className="text-xs text-muted-foreground mb-1">Description</p>
-                  <p className="text-sm text-foreground line-clamp-2">{saving.description}</p>
+                  <div className="flex items-start gap-2">
+                     <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground mb-1">Description</p>
+                        <p
+                           className={`text-sm text-foreground transition-all duration-300 ease-in-out ${descExpanded ? "" : "line-clamp-2"
+                              }`}
+                        >
+                           {saving.description}
+                        </p>
+                     </div>
+                     <button
+                        onClick={() => setDescExpanded((prev) => !prev)}
+                        className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground mt-0.5"
+                        title={descExpanded ? "Collapse" : "Expand"}
+                     >
+                        {descExpanded ? (
+                           <ChevronUp className="h-4 w-4" />
+                        ) : (
+                           <ChevronDown className="h-4 w-4" />
+                        )}
+                     </button>
+                  </div>
                </div>
             )}
          </div>
