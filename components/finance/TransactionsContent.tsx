@@ -57,54 +57,81 @@ export default function TransactionsContent({
       type: null,
    });
 
-   const loadTransactions = useCallback(async (page: number = 1) => {
-      try {
-         // If filters are active, use filtered action
-         if (filters.dateRange || filters.categoryId || filters.type) {
-            const [transResult, sumsResult] = await Promise.all([
-               getFilteredTransactions({
-                  page,
-                  startDate: filters.dateRange?.startDate || undefined,
-                  endDate: filters.dateRange?.endDate || undefined,
-                  categoryId: filters.categoryId || undefined,
-                  type: (filters.type as "INCOME" | "EXPENSE") || undefined,
-               }),
-               getTransactionSums({
-                  startDate: filters.dateRange?.startDate || undefined,
-                  endDate: filters.dateRange?.endDate || undefined,
-                  categoryId: filters.categoryId || undefined,
-                  type: (filters.type as "INCOME" | "EXPENSE") || undefined,
-               }),
-            ]);
-
-            if (transResult.data) {
-               const paginatedData = transResult.data as any;
-               setTransactions(paginatedData.data || []);
-               setPagination(paginatedData.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
-            }
-
-            if (sumsResult.data) {
-               setSums(sumsResult.data as any);
-            }
-         } else {
-            // Otherwise use regular action
-            const result = await getTransactions({ page });
-            if (result.data) {
-               const paginatedData = result.data as any;
-               setTransactions(paginatedData.data || []);
-               setPagination(paginatedData.pagination || { page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPrevPage: false });
-            }
-
-            // Get sums for all transactions
-            const sumsResult = await getTransactionSums({});
-            if (sumsResult.data) {
-               setSums(sumsResult.data as any);
-            }
+   const loadTransactions = useCallback(
+      async (
+         page: number = 1,
+         filtersOverride?: {
+            dateRange: DateRange | null;
+            categoryId: string | null;
+            type: string | null;
          }
-      } catch (error) {
-         console.error("Failed to load transactions:", error);
-      }
-   }, [filters]);
+      ) => {
+         try {
+            // Use provided filters or fall back to state filters
+            const activeFilters = filtersOverride || filters;
+
+            // If filters are active, use filtered action
+            if (activeFilters.dateRange || activeFilters.categoryId || activeFilters.type) {
+               const [transResult, sumsResult] = await Promise.all([
+                  getFilteredTransactions({
+                     page,
+                     startDate: activeFilters.dateRange?.startDate || undefined,
+                     endDate: activeFilters.dateRange?.endDate || undefined,
+                     categoryId: activeFilters.categoryId || undefined,
+                     type: (activeFilters.type as "INCOME" | "EXPENSE") || undefined,
+                  }),
+                  getTransactionSums({
+                     startDate: activeFilters.dateRange?.startDate || undefined,
+                     endDate: activeFilters.dateRange?.endDate || undefined,
+                     categoryId: activeFilters.categoryId || undefined,
+                     type: (activeFilters.type as "INCOME" | "EXPENSE") || undefined,
+                  }),
+               ]);
+
+               if (transResult.data) {
+                  const paginatedData = transResult.data as any;
+                  setTransactions(paginatedData.data || []);
+                  setPagination(paginatedData.pagination || {
+                     page: 1,
+                     limit: 20,
+                     total: 0,
+                     totalPages: 0,
+                     hasNextPage: false,
+                     hasPrevPage: false,
+                  });
+               }
+
+               if (sumsResult.data) {
+                  setSums(sumsResult.data as any);
+               }
+            } else {
+               // Otherwise use regular action
+               const result = await getTransactions({ page });
+               if (result.data) {
+                  const paginatedData = result.data as any;
+                  setTransactions(paginatedData.data || []);
+                  setPagination(paginatedData.pagination || {
+                     page: 1,
+                     limit: 20,
+                     total: 0,
+                     totalPages: 0,
+                     hasNextPage: false,
+                     hasPrevPage: false,
+                  });
+               }
+
+               // Get sums for all transactions
+               const sumsResult = await getTransactionSums({});
+               if (sumsResult.data) {
+                  setSums(sumsResult.data as any);
+               }
+            }
+         } catch (error) {
+            console.error("Failed to load transactions:", error);
+         }
+      },
+      [filters]
+   );
 
    // Load categories when a new one is created
    const loadCategories = useCallback(async () => {
@@ -145,8 +172,8 @@ export default function TransactionsContent({
       type: string | null;
    }) => {
       setFilters(newFilters);
-      // Reset to page 1 when filters change
-      loadTransactions(1);
+      // Pass newFilters directly to avoid stale state
+      loadTransactions(1, newFilters);
    };
 
    return (
