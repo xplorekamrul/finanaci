@@ -1,9 +1,10 @@
 "use client";
 
+import { getCategoriesSortedByUsage } from "@/actions/finance/categories";
 import { CustomSelect } from "@/components/shared/custom-select";
 import { FinanceCategory } from "@prisma/client";
 import { Plus } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface CategorySelectorProps {
   categories: FinanceCategory[];
@@ -17,7 +18,7 @@ interface CategorySelectorProps {
 }
 
 export function CategorySelector({
-  categories,
+  categories: initialCategories,
   value,
   onValueChange,
   onOpenModal,
@@ -26,14 +27,34 @@ export function CategorySelector({
   label = "Category",
   required = false,
 }: CategorySelectorProps) {
+  const [sortedCategories, setSortedCategories] = useState<FinanceCategory[]>(initialCategories);
+
+  // Fetch categories sorted by usage on component mount
+  useEffect(() => {
+    const loadSortedCategories = async () => {
+      try {
+        const result = await getCategoriesSortedByUsage();
+        if (result.data) {
+          setSortedCategories(result.data as FinanceCategory[]);
+        }
+      } catch (error) {
+        console.error("Failed to load sorted categories:", error);
+        // Fallback to initial categories on error
+        setSortedCategories(initialCategories);
+      }
+    };
+
+    loadSortedCategories();
+  }, [initialCategories]);
+
   // Memoize the options to prevent unnecessary re-renders and key warnings
   const options = useMemo(
     () =>
-      categories.map((cat) => ({
+      sortedCategories.map((cat) => ({
         value: cat.id,
         label: cat.name,
       })),
-    [categories],
+    [sortedCategories],
   );
 
   return (

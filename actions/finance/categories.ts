@@ -52,6 +52,34 @@ export const getAllFinanceCategories = authActionClient
       return categories;
    });
 
+export const getCategoriesSortedByUsage = authActionClient
+   .action(async ({ ctx }) => {
+      "use cache";
+      cacheLife("hours");
+      cacheTag("finance-categories-by-usage");
+
+      // Get all categories with transaction count
+      const categories = await prisma.financeCategory.findMany({
+         where: { userId: ctx.userId },
+         include: {
+            _count: {
+               select: { transactions: true, savings: true, loans: true, borrowed: true },
+            },
+         },
+      });
+
+      // Sort by total usage (sum of all transactions, savings, loans, borrowed)
+      const sortedCategories = categories
+         .map((cat) => ({
+            ...cat,
+            totalUsage: cat._count.transactions + cat._count.savings + cat._count.loans + cat._count.borrowed,
+         }))
+         .sort((a, b) => b.totalUsage - a.totalUsage)
+         .map(({ totalUsage, ...cat }) => cat);
+
+      return sortedCategories;
+   });
+
 export const createFinanceCategory = authActionClient
    .schema(financeCategorySchema)
    .action(async ({ parsedInput, ctx }) => {
