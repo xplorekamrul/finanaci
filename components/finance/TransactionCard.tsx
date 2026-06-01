@@ -91,25 +91,17 @@ export default function TransactionCard({
             </div>
 
             {/* Row 2: Date + Category Badge */}
-            <div className="flex items-center gap-x-2 flex-wrap justify-between">
+            <div className="flex items-center gap-2 flex-wrap ">
                <span className="text-xs text-muted-foreground">
-                  {formatDate(transaction.date)}
+                  {formatDate(transaction.date)}.
                </span>
-               <span className="text-muted-foreground text-xs">·</span>
                <span className="inline-flex items-center gap-x-1 px-2 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground border border-border">
                   {/* {transaction.category.icon && (
                      <span className="text-sm leading-none">{transaction.category.icon}</span>
                   )} */}
                   {transaction.category.name}
                </span>
-               <p
-                  className={` items-center px-2 py-0.5 rounded-full text-xs font-medium  ${isIncome
-                     ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
-                     : "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
-                     }`}
-               >
-                  {transaction.type}
-               </p>
+               
                {transaction.isRecurring && transaction.frequency && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                      {transaction.frequency}
@@ -118,7 +110,7 @@ export default function TransactionCard({
             </div>
 
             {/* Row 3: Amount label + Type badge + Frequency badge */}
-            <div className="flex items-center gap-2 flex-wrap mt-1">
+            <div className="flex items-center gap-2 flex-wrap my-1 justify-between">
                {/* <p className="text-xs text-muted-foreground font-medium">Amount</p> */}
 
                {/* Amount Value */}
@@ -134,6 +126,14 @@ export default function TransactionCard({
                      maximumFractionDigits: 2,
                   })}{" "}
                   <span className="text-sm font-medium opacity-70">{transaction.currency}</span>
+               </p>
+               <p
+                  className={` items-center px-2 py-0.5 rounded-full text-xs font-medium  ${isIncome
+                     ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                     : "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
+                     }`}
+               >
+                  {transaction.type}
                </p>
             </div>
 
