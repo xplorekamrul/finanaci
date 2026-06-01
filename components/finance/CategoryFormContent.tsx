@@ -27,7 +27,12 @@ const getErrorMessage = (error: any): string => {
    return "";
 };
 
-export default function CategoryFormContent({ initialData, onClose, onSuccess, onCategoryCreated }: CategoryFormContentProps) {
+export default function CategoryFormContent({
+   initialData,
+   onClose,
+   onSuccess,
+   onCategoryCreated,
+}: CategoryFormContentProps) {
    const [loading, setLoading] = useState(false);
    const isEditMode = !!initialData?.id;
 
@@ -69,29 +74,42 @@ export default function CategoryFormContent({ initialData, onClose, onSuccess, o
             result = await createFinanceCategory(data);
          }
 
-         if (result?.data) {
+         if (result?.serverError) {
+            console.error("Server error:", result.serverError);
+            alert(`Failed to save category: ${result.serverError}`);
+            return;
+         }
+
+         // If we have data, it means success
+         if (result && typeof result === 'object' && 'id' in result) {
             if (!isEditMode && onCategoryCreated) {
-               onCategoryCreated(result.data);
+               onCategoryCreated(result);
+               return;
             }
             onSuccess();
             reset();
-         } else if (result?.serverError) {
-            console.error("Server error:", result.serverError);
-            alert(`Failed to save category: ${result.serverError}`);
+         } else if (result?.data) {
+            // Handle safe-action wrapped response
+            if (!isEditMode && onCategoryCreated) {
+               onCategoryCreated(result.data);
+               return;
+            }
+            onSuccess();
+            reset();
          } else {
             console.error("Unexpected response:", result);
             alert("Failed to save category");
          }
       } catch (error) {
          console.error("Form error:", error);
-         alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+         alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
       } finally {
          setLoading(false);
       }
    };
 
    return (
-      <>
+      <div className="space-y-6">
          <div>
             <h2 className="text-2xl font-semibold text-foreground mb-6">
                {isEditMode ? "Update Category" : "Create Category"}
@@ -198,6 +216,6 @@ export default function CategoryFormContent({ initialData, onClose, onSuccess, o
                </button>
             </div>
          </form>
-      </>
+      </div>
    );
 }

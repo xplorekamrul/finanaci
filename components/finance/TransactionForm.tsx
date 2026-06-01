@@ -31,6 +31,7 @@ interface TransactionFormProps {
    } | null;
    onClose: () => void;
    onSuccess: () => void;
+   onOpenCategoryModal?: () => void;
 }
 
 const getErrorMessage = (error: any): string => {
@@ -45,9 +46,9 @@ export default function TransactionForm({
    initialData,
    onClose,
    onSuccess,
+   onOpenCategoryModal,
 }: TransactionFormProps) {
    const [loading, setLoading] = useState(false);
-   const [categories, setCategories] = useState(initialCategories);
    const isEditMode = !!initialData?.id;
 
    const {
@@ -138,9 +139,14 @@ export default function TransactionForm({
                <label className="text-sm font-medium text-foreground">
                   Type <span className="text-destructive">*</span>
                </label>
-               <Select value={transactionType || ""} onValueChange={(value) => setValue("type", value)}>
+               <Select
+                  value={transactionType || TransactionType.EXPENSE}
+                  onValueChange={(value) => setValue("type", value)}
+               >
                   <SelectTrigger>
-                     <SelectValue placeholder="Select type" />
+                     <SelectValue
+                        placeholder="Select type"
+                     />
                   </SelectTrigger>
                   <SelectContent>
                      <SelectItem value={TransactionType.EXPENSE}>Expense</SelectItem>
@@ -152,10 +158,10 @@ export default function TransactionForm({
 
             {/* Category Field with Custom Select */}
             <CategorySelector
-               categories={categories}
+               categories={initialCategories}
                value={watch("categoryId")}
                onValueChange={(value) => setValue("categoryId", value)}
-               onCategoriesUpdate={setCategories}
+               onOpenModal={onOpenCategoryModal}
                error={errors.categoryId ? getErrorMessage(errors.categoryId) : undefined}
                required
             />
@@ -258,7 +264,10 @@ export default function TransactionForm({
                   <label className="text-sm font-medium text-foreground">
                      Frequency
                   </label>
-                  <Select value={watch("frequency") || ""} onValueChange={(value) => setValue("frequency", value)}>
+                  <Select
+                     value={watch("frequency") || ""}
+                     onValueChange={(value) => setValue("frequency", value || null)}
+                  >
                      <SelectTrigger>
                         <SelectValue placeholder="Select frequency" />
                      </SelectTrigger>

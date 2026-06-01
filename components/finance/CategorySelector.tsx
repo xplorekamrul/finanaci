@@ -1,18 +1,16 @@
 "use client";
 
-import { createFinanceCategory } from "@/actions/finance/categories";
+import { getCategoriesSortedByUsage } from "@/actions/finance/categories";
 import { CustomSelect } from "@/components/shared/custom-select";
 import { FinanceCategory } from "@prisma/client";
 import { Plus } from "lucide-react";
-import { useCallback, useState } from "react";
-import CategoryFormContent from "./CategoryFormContent";
-import Modal from "./Modal";
+import { useEffect, useMemo, useState } from "react";
 
 interface CategorySelectorProps {
   categories: FinanceCategory[];
   value: string;
   onValueChange: (value: string) => void;
-  onCategoriesUpdate: (categories: FinanceCategory[]) => void;
+  onOpenModal?: () => void;
   placeholder?: string;
   error?: string;
   label?: string;
@@ -20,41 +18,44 @@ interface CategorySelectorProps {
 }
 
 export function CategorySelector({
-  categories,
+  categories: initialCategories,
   value,
   onValueChange,
-  onCategoriesUpdate,
+  onOpenModal,
   placeholder = "Select a category",
   error,
   label = "Category",
   required = false,
 }: CategorySelectorProps) {
-  const [showModal, setShowModal] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
+  const [sortedCategories, setSortedCategories] = useState<FinanceCategory[]>(initialCategories);
 
-  const handleCreateCategory = useCallback(async (categoryData: any) => {
-    setIsCreating(true);
-    try {
-      const result = await createFinanceCategory(categoryData);
-      if (result?.data) {
-        const newCategories = [...categories, result.data];
-        onCategoriesUpdate(newCategories);
-        onValueChange(result.data.id);
-        setShowModal(false);
-      } else if (result?.serverError) {
-        console.error("Server error:", result.serverError);
-        alert(`Failed to create category: ${result.serverError}`);
-      } else {
-        console.error("Unexpected response:", result);
-        alert("Failed to create category");
+  // Fetch categories sorted by usage on component mount
+  useEffect(() => {
+    const loadSortedCategories = async () => {
+      try {
+        const result = await getCategoriesSortedByUsage();
+        if (result.data) {
+          setSortedCategories(result.data as FinanceCategory[]);
+        }
+      } catch (error) {
+        console.error("Failed to load sorted categories:", error);
+        // Fallback to initial categories on error
+        setSortedCategories(initialCategories);
       }
-    } catch (error) {
-      console.error("Failed to create category:", error);
-      alert(`Failed to create category: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsCreating(false);
-    }
-  }, [categories, onCategoriesUpdate, onValueChange]);
+    };
+
+    loadSortedCategories();
+  }, [initialCategories]);
+
+  // Memoize the options to prevent unnecessary re-renders and key warnings
+  const options = useMemo(
+    () =>
+      sortedCategories.map((cat) => ({
+        value: cat.id,
+        label: cat.name,
+      })),
+    [sortedCategories],
+  );
 
   return (
     <div className="space-y-2">
@@ -64,7 +65,7 @@ export function CategorySelector({
         </label>
         <button
           type="button"
-          onClick={() => setShowModal(true)}
+          onClick={onOpenModal}
           className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
           title="Add new category"
         >
@@ -76,10 +77,7 @@ export function CategorySelector({
       <CustomSelect
         value={value || ""}
         onValueChange={onValueChange}
-        options={categories.map((cat) => ({
-          value: cat.id,
-          label: cat.name,
-        }))}
+        options={options}
         placeholder={placeholder}
         searchable
         searchPlaceholder="Search categories..."
@@ -87,21 +85,6 @@ export function CategorySelector({
       />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-
-      <Modal
-        isOpen={showModal}
-        onClose={() => !isCreating && setShowModal(false)}
-        title="Create New Category"
-      >
-        <CategoryFormContent
-          initialData={null}
-          onClose={() => setShowModal(false)}
-          onSuccess={() => {
-            setShowModal(false);
-          }}
-          onCategoryCreated={handleCreateCategory}
-        />
-      </Modal>
     </div>
   );
 }

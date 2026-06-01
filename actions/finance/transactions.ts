@@ -215,6 +215,30 @@ export const getTransactionSums = authActionClient
          where.categoryId = parsedInput.categoryId;
       }
 
+      // If type filter is applied, only fetch that type
+      if (parsedInput.type) {
+         const result = await prisma.transaction.aggregate({
+            where: { ...where, type: parsedInput.type },
+            _sum: { amount: true },
+         });
+
+         const amount = result._sum.amount || 0;
+
+         if (parsedInput.type === "INCOME") {
+            return {
+               income: amount,
+               expense: 0,
+               total: amount,
+            };
+         } else {
+            return {
+               income: 0,
+               expense: amount,
+               total: -amount,
+            };
+         }
+      }
+
       // Use aggregation for better performance
       const [incomeResult, expenseResult] = await Promise.all([
          prisma.transaction.aggregate({
