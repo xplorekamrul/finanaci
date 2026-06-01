@@ -1,5 +1,6 @@
 "use client";
 
+import { getAllFinanceCategories } from "@/actions/finance/categories";
 import { getFilteredTransactions, getTransactions, getTransactionSums } from "@/actions/finance/transactions";
 import { Pagination } from "@/components/shared/Pagination";
 import { PaginatedResponse } from "@/lib/pagination";
@@ -7,6 +8,7 @@ import { FinanceCategory, Transaction } from "@prisma/client";
 import { Plus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import CategoryFormContent from "./CategoryFormContent";
 import Modal from "./Modal";
 import TransactionFilters from "./TransactionFilters";
 import TransactionForm from "./TransactionForm";
@@ -34,10 +36,12 @@ export default function TransactionsContent({
       initialTransactions
    );
    const [pagination, setPagination] = useState(initialPagination);
+   const [categories, setCategories] = useState<FinanceCategory[]>(initialCategories);
    const [editingTransaction, setEditingTransaction] = useState<
       (Transaction & { category: FinanceCategory }) | null
    >(null);
-   const [showModal, setShowModal] = useState(false);
+   const [showTransactionModal, setShowTransactionModal] = useState(false);
+   const [showCategoryModal, setShowCategoryModal] = useState(false);
    const [sums, setSums] = useState<{ income: number; expense: number; total: number }>({
       income: 0,
       expense: 0,
@@ -102,20 +106,37 @@ export default function TransactionsContent({
       }
    }, [filters]);
 
+   // Load categories when a new one is created
+   const loadCategories = useCallback(async () => {
+      try {
+         const result = await getAllFinanceCategories();
+         if (result.data) {
+            setCategories(result.data as FinanceCategory[]);
+         }
+      } catch (error) {
+         console.error("Failed to load categories:", error);
+      }
+   }, []);
+
    // Load transactions when page changes via URL
    useEffect(() => {
       const page = parseInt(searchParams.get("page") || "1");
       loadTransactions(page);
    }, [searchParams, loadTransactions]);
 
-   const handleCloseModal = () => {
-      setShowModal(false);
+   const handleCloseTransactionModal = () => {
+      setShowTransactionModal(false);
       setEditingTransaction(null);
    };
 
-   const handleSuccess = () => {
-      handleCloseModal();
+   const handleSuccessTransaction = () => {
+      handleCloseTransactionModal();
       loadTransactions(1);
+   };
+
+   const handleSuccessCategory = () => {
+      setShowCategoryModal(false);
+      loadCategories();
    };
 
    const handleFilterChange = (newFilters: {
@@ -139,9 +160,9 @@ export default function TransactionsContent({
             <button
                onClick={() => {
                   setEditingTransaction(null);
-                  setShowModal(true);
+                  setShowTransactionModal(true);
                }}
-               disabled={initialCategories.length === 0}
+               disabled={categories.length === 0}
                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
                <Plus className="h-4 w-4" />
@@ -150,7 +171,7 @@ export default function TransactionsContent({
 
          {/* Filters */}
          <TransactionFilters
-            categories={initialCategories}
+            categories={categories}
             onFilterChange={handleFilterChange}
          />
 
@@ -174,7 +195,7 @@ export default function TransactionsContent({
          </div>
 
          {/* Warning if no categories */}
-         {initialCategories.length === 0 && (
+         {categories.length === 0 && (
             <div className="card-snake-border bg-card rounded-xl shadow-lg p-6 border-l-4 border-l-yellow-500">
                <p className="text-sm text-muted-foreground">
                   Create a category first before adding transactions.
@@ -187,7 +208,7 @@ export default function TransactionsContent({
             transactions={transactions}
             onEdit={(trans) => {
                setEditingTransaction(trans);
-               setShowModal(true);
+               setShowTransactionModal(true);
             }}
             onRefresh={() => loadTransactions(pagination.page)}
          />
@@ -200,17 +221,38 @@ export default function TransactionsContent({
             hasPrevPage={pagination.hasPrevPage}
          />
 
-         {/* Modal for Create/Edit */}
+         {/* Transaction Modal */}
          <Modal
-            isOpen={showModal}
-            onClose={handleCloseModal}
+            isOpen={showTransactionModal}
+            onClose={handleCloseTransactionModal}
             title={editingTransaction ? "Edit Transaction" : "Add Transaction"}
          >
             <TransactionForm
-               categories={initialCategories}
+               categories={categories}
                initialData={editingTransaction}
-               onClose={handleCloseModal}
-               onSuccess={handleSuccess}
+               onClose={handleCloseTransactionModal}
+               onSuccess={handleSuccessTransaction}
+               onOpenCategoryModal={() => setShowCategoryModal(true)}
+            />
+         </Modal>
+
+         {/* Category Modal - At top level, outside transaction form */}
+         <Modal
+            isOpen={showCategoryModal}
+            onClose={() => setShowCategoryModal(false)}
+            title="Create New Category"
+         >
+            <CategoryFormContent
+               initialData={null}
+               onClose={() => setShowCategoryModal(false)}
+               onSuccess={handleSuccessCategory}
+               onCategoryCreated={(categoryData) => {
+                  // Add new category to list
+                  setCategories([...categories, categoryData]);
+                  // Auto-select it in the transaction form
+                  // Close the category modal
+                  setShowCategoryModal(false);
+               }}
             />
          </Modal>
       </div>

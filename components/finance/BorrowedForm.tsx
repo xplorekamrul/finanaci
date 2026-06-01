@@ -199,7 +199,6 @@ export default function BorrowedForm({ borrowed, categories: initialCategories, 
                   categories={categories}
                   value={watch("categoryId")}
                   onValueChange={(value) => setValue("categoryId", value)}
-                  onCategoriesUpdate={setCategories}
                   label="Category"
                />
             </div>

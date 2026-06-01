@@ -175,7 +175,6 @@ export default function LoanForm({
                   categories={categories}
                   value={watch("categoryId")}
                   onValueChange={(value) => setValue("categoryId", value)}
-                  onCategoriesUpdate={setCategories}
                   error={errors.categoryId ? getErrorMessage(errors.categoryId) : undefined}
                   label="Category"
                />

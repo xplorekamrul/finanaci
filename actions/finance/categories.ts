@@ -64,25 +64,38 @@ export const createFinanceCategory = authActionClient
       });
 
       if (existing) {
-         throw new Error("Category with this name and type already exists");
+         return {
+            data: null,
+            serverError: "Category with this name and type already exists",
+         };
       }
 
-      const category = await prisma.financeCategory.create({
-         data: {
-            ...parsedInput,
-            userId: ctx.userId,
-         },
-      });
+      try {
+         const category = await prisma.financeCategory.create({
+            data: {
+               ...parsedInput,
+               userId: ctx.userId,
+            },
+         });
 
-      updateTag("finance-categories-all");
-      updateTag("dashboard-stats");
-      updateTag("dashboard-chart");
-      updateTag("dashboard-categories");
-      updateTag("finance-transactions-all");
-      updateTag("finance-borrowed-all");
-      updateTag("finance-loans-all");
-      updateTag("finance-savings-all");
-      return category;
+         updateTag("finance-categories");
+         updateTag("finance-categories-all");
+         updateTag("dashboard-stats");
+         updateTag("dashboard-chart");
+         updateTag("dashboard-categories");
+         updateTag("finance-transactions-all");
+         updateTag("finance-borrowed-all");
+         updateTag("finance-loans-all");
+         updateTag("finance-savings-all");
+
+         return category;
+      } catch (error) {
+         console.error("Failed to create category:", error);
+         return {
+            data: null,
+            serverError: error instanceof Error ? error.message : "Failed to create category",
+         };
+      }
    });
 
 export const updateFinanceCategory = authActionClient
@@ -99,7 +112,10 @@ export const updateFinanceCategory = authActionClient
       });
 
       if (!category || category.userId !== ctx.userId) {
-         throw new Error("Category not found");
+         return {
+            data: null,
+            serverError: "Category not found",
+         };
       }
 
       const existing = await prisma.financeCategory.findFirst({
@@ -112,23 +128,34 @@ export const updateFinanceCategory = authActionClient
       });
 
       if (existing) {
-         throw new Error("Category with this name and type already exists");
+         return {
+            data: null,
+            serverError: "Category with this name and type already exists",
+         };
       }
 
-      const updated = await prisma.financeCategory.update({
-         where: { id },
-         data,
-      });
+      try {
+         const updated = await prisma.financeCategory.update({
+            where: { id },
+            data,
+         });
 
-      updateTag("finance-categories-all");
-      updateTag("dashboard-stats");
-      updateTag("dashboard-chart");
-      updateTag("dashboard-categories");
-      updateTag("finance-transactions-all");
-      updateTag("finance-borrowed-all");
-      updateTag("finance-loans-all");
-      updateTag("finance-savings-all");
-      return updated;
+         updateTag("finance-categories-all");
+         updateTag("dashboard-stats");
+         updateTag("dashboard-chart");
+         updateTag("dashboard-categories");
+         updateTag("finance-transactions-all");
+         updateTag("finance-borrowed-all");
+         updateTag("finance-loans-all");
+         updateTag("finance-savings-all");
+         return updated;
+      } catch (error) {
+         console.error("Failed to update category:", error);
+         return {
+            data: null,
+            serverError: error instanceof Error ? error.message : "Failed to update category",
+         };
+      }
    });
 
 export const deleteFinanceCategory = authActionClient
@@ -139,19 +166,30 @@ export const deleteFinanceCategory = authActionClient
       });
 
       if (!category || category.userId !== ctx.userId) {
-         throw new Error("Category not found");
+         return {
+            data: null,
+            serverError: "Category not found",
+         };
       }
 
-      await prisma.financeCategory.delete({
-         where: { id: parsedInput.id },
-      });
+      try {
+         await prisma.financeCategory.delete({
+            where: { id: parsedInput.id },
+         });
 
-      updateTag("finance-categories-all");
-      updateTag("dashboard-stats");
-      updateTag("dashboard-chart");
-      updateTag("dashboard-categories");
-      updateTag("finance-transactions-all");
-      updateTag("finance-borrowed-all");
-      updateTag("finance-loans-all");
-      updateTag("finance-savings-all");
+         updateTag("finance-categories-all");
+         updateTag("dashboard-stats");
+         updateTag("dashboard-chart");
+         updateTag("dashboard-categories");
+         updateTag("finance-transactions-all");
+         updateTag("finance-borrowed-all");
+         updateTag("finance-loans-all");
+         updateTag("finance-savings-all");
+      } catch (error) {
+         console.error("Failed to delete category:", error);
+         return {
+            data: null,
+            serverError: error instanceof Error ? error.message : "Failed to delete category",
+         };
+      }
    });
