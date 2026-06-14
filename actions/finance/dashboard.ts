@@ -62,24 +62,66 @@ export const getDashboardStats = authActionClient.action(async ({ ctx }) => {
       select: { type: true, amount: true, date: true },
    });
 
-   const calculateStats = (transactions: typeof allTransactions, startDate: Date) => {
-      const filtered = transactions.filter(t => t.date >= startDate);
-      const income = filtered
+   // Get all savings, loans, and borrowed for the year
+   const allSavings = await prisma.savings.findMany({
+      where: {
+         userId: ctx.userId,
+         savingsDate: { gte: yearStart },
+      },
+      select: { amount: true, savingsDate: true },
+   });
+
+   const allLoans = await prisma.loan.findMany({
+      where: {
+         userId: ctx.userId,
+         loanDate: { gte: yearStart },
+      },
+      select: { amount: true, loanDate: true },
+   });
+
+   const allBorrowed = await prisma.borrowed.findMany({
+      where: {
+         userId: ctx.userId,
+         borrowDate: { gte: yearStart },
+      },
+      select: { amount: true, borrowDate: true },
+   });
+
+   const calculateStats = (
+      transactions: typeof allTransactions,
+      savings: typeof allSavings,
+      loans: typeof allLoans,
+      borrowed: typeof allBorrowed,
+      startDate: Date
+   ) => {
+      const filteredTransactions = transactions.filter(t => t.date >= startDate);
+      const filteredSavings = savings.filter(s => s.savingsDate >= startDate);
+      const filteredLoans = loans.filter(l => l.loanDate >= startDate);
+      const filteredBorrowed = borrowed.filter(b => b.borrowDate >= startDate);
+
+      const income = filteredTransactions
          .filter((t) => t.type === "INCOME")
          .reduce((sum, t) => sum + t.amount, 0);
 
-      const expense = filtered
+      const expense = filteredTransactions
          .filter((t) => t.type === "EXPENSE")
          .reduce((sum, t) => sum + t.amount, 0);
 
-      return { income, expense, balance: income - expense };
+      const totalSavings = filteredSavings.reduce((sum, s) => sum + s.amount, 0);
+      const totalLoans = filteredLoans.reduce((sum, l) => sum + l.amount, 0);
+      const totalBorrowed = filteredBorrowed.reduce((sum, b) => sum + b.amount, 0);
+
+      // Balance = Income - Expense - Savings - Loans - Borrowed
+      const balance = income - expense - totalSavings - totalLoans - totalBorrowed;
+
+      return { income, expense, balance };
    };
 
    return {
-      day: calculateStats(allTransactions, dayStart),
-      week: calculateStats(allTransactions, weekStart),
-      month: calculateStats(allTransactions, monthStart),
-      year: calculateStats(allTransactions, yearStart),
+      day: calculateStats(allTransactions, allSavings, allLoans, allBorrowed, dayStart),
+      week: calculateStats(allTransactions, allSavings, allLoans, allBorrowed, weekStart),
+      month: calculateStats(allTransactions, allSavings, allLoans, allBorrowed, monthStart),
+      year: calculateStats(allTransactions, allSavings, allLoans, allBorrowed, yearStart),
    };
 });
 
@@ -379,6 +421,30 @@ export const getDashboardStatsByDateRange = authActionClient
          select: { type: true, amount: true },
       });
 
+      const savings = await prisma.savings.findMany({
+         where: {
+            userId: ctx.userId,
+            savingsDate: { gte: startDate, lte: endDate },
+         },
+         select: { amount: true },
+      });
+
+      const loans = await prisma.loan.findMany({
+         where: {
+            userId: ctx.userId,
+            loanDate: { gte: startDate, lte: endDate },
+         },
+         select: { amount: true },
+      });
+
+      const borrowed = await prisma.borrowed.findMany({
+         where: {
+            userId: ctx.userId,
+            borrowDate: { gte: startDate, lte: endDate },
+         },
+         select: { amount: true },
+      });
+
       const income = transactions
          .filter((t) => t.type === "INCOME")
          .reduce((sum, t) => sum + t.amount, 0);
@@ -387,9 +453,16 @@ export const getDashboardStatsByDateRange = authActionClient
          .filter((t) => t.type === "EXPENSE")
          .reduce((sum, t) => sum + t.amount, 0);
 
+      const totalSavings = savings.reduce((sum, s) => sum + s.amount, 0);
+      const totalLoans = loans.reduce((sum, l) => sum + l.amount, 0);
+      const totalBorrowed = borrowed.reduce((sum, b) => sum + b.amount, 0);
+
+      // Balance = Income - Expense - Savings - Loans - Borrowed
+      const balance = income - expense - totalSavings - totalLoans - totalBorrowed;
+
       return {
          income,
          expense,
-         balance: income - expense,
+         balance,
       };
    });
