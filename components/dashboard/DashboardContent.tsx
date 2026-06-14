@@ -160,7 +160,7 @@ export default function DashboardContent({
                      bgColor="bg-red-100 dark:bg-red-900/30"
                   />
                   <StatsCard
-                     title="Balance"
+                     title="Available Balance"
                      amount={currentStats.balance}
                      icon={<DollarSign className="h-6 w-6" />}
                      color={currentStats.balance >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}
@@ -194,13 +194,6 @@ export default function DashboardContent({
                      icon={<AlertCircle className="h-6 w-6" />}
                      color="text-red-600 dark:text-red-400"
                      bgColor="bg-red-100 dark:bg-red-900/30"
-                  />
-                  <StatsCard
-                     title="Adjusted Balance"
-                     amount={currentStats.balance - (borrowed?.totalBorrowed || 0)}
-                     icon={<DollarSign className="h-6 w-6" />}
-                     color={(currentStats.balance - (borrowed?.totalBorrowed || 0)) >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}
-                     bgColor={(currentStats.balance - (borrowed?.totalBorrowed || 0)) >= 0 ? "bg-blue-100 dark:bg-blue-900/30" : "bg-red-100 dark:bg-red-900/30"}
                   />
                   {borrowed && borrowed.totalInterest > 0 && (
                      <StatsCard
