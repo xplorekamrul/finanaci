@@ -43,7 +43,7 @@ export default function IncomeExpenseByDateChart({ data }: IncomeExpenseByDateCh
                      border: "1px solid var(--border)",
                      borderRadius: "8px",
                   }}
-                  formatter={(value: any) => `$${(value as number).toFixed(2)}`}
+                  formatter={(value: any) => `৳${(value as number).toFixed(2)}`}
                />
                <Legend />
                <Bar dataKey="income" fill="#10b981" name="Income" radius={[8, 8, 0, 0]} />
